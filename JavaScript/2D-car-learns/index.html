@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<head>
+    <title>Self-driving car - No libraries</title>
+
+    <meta charset='utf-8'>
+	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+	<meta http-equiv='X-UA-Compatible' content='ie-edge'>
+    
+    <link rel='preconnect' href='https://fonts.googleapis.com'>
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+    <link href='https://fonts.googleapis.com/css2?family=Trebuchet+MS:ital,wght@0,400..800;1,400..800&display=swap' rel='stylesheet'>
+    <link rel="stylesheet" href="style.css?5">
+    <style>
+    * { 
+        margin:0;
+        padding:0;
+        font-family:'Trebuchet MS'; }
+
+    body { 
+        border:0;
+        padding:20px; }
+    
+    #carCanvas {
+        margin:0; padding:0; }
+    </style>
+</head>
+<body>
+    <table style='' border='0'>
+    <tr>
+        <td>
+            <canvas id="carCanvas"></canvas>
+        </td>
+        <td>
+            <div id="verticalButtons">
+                <button onclick="save()">💾</button>
+                <button onclick="discard()">🗑️</button>
+            </div>
+        </td>
+        <td>
+            <canvas id="networkCanvas"></canvas>
+        </td>
+        <td valign='top' style="padding-left:20px;">
+            <h3 style="margin-bottom:12px;">Agent Learns Using Gentic Algorithm</h3>
+
+            <p style='width:650px;'>This agent learns to play using a genetic algorithm.  50 cars are initially spawned (using random weights in their brains).  
+            After a few moments, save the best car (click Save button).  Now restart the simulation (clicking the link in the left nav), and 50 of the new 
+            cars will spawn using the saved best car.  Repeat the cycle and the performance improves over time.</p>
+            
+            <p style="margin-top:10px;">Key skills used in this project include: JavaScript, Genetic Algorithms, CSS, HTML</p>
+        </td>
+    </tr>
+    </table>
+    <!--div id='console_output'>Console: </div-->
+    <script src="visualizer.js"></script>
+    <script src="network.js"></script>
+    <script src="sensor.js"></script>
+    <script src="utils.js"></script>
+    <script src="road.js"></script>
+    <script src="controls.js"></script>
+    <script src="car.js"></script>
+    <script src="main.js?3"></script>
+</body>
+</html>
