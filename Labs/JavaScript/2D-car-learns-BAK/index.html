@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<head>
+	<title>AI Car</title>
+
+	<link rel='stylesheet' href='./style.css?<?= time() ?>'>
+	
+	<script src='../../../include/jquery-3.7.1.min.js'></script>
+	<script src='visualizer.js?a=1'></script>
+	<script src='network.js?a=1'></script>
+	<script src='sensors.js?a=1'></script>
+	<script src='utils.js?a=1'></script>
+	<script src='road.js?a=1'></script>
+	<script src='controls.js?a=1'></script>
+	<script src='car.js?a=1'></script>
+	<script src='main.js?a=5'></script>
+	<script type='text/javascript'>
+	alert();
+	
+	$(document).ready(function() 
+	{
+		setInterval(function () 
+		{
+			// Spawn new cars every 4 seconds
+			rndNumCars = randomIntFromInterval(1, 4);
+
+			if(rndNumCars > 2) 
+				rndNumCars = 2;
+
+			for(let i=0; i < rndNumCars; i++)
+			{
+				rndLaneNum = Math.floor(Math.random()*3);
+
+				traffic.push(new Car(road.getLaneCenter(rndLaneNum), bestCar.y-800, 30, 50, "DUMMY", 2));
+			}
+		}, 5000);
+
+		setInterval(function () 
+		{
+			let best_y_disp = parseFloat(bestCar.y).toFixed(2);
+
+			$('#console_out').html('Best Car: ' + best_y_disp + '<br>');
+
+		}, 1000);
+	});
+	</script>
+</head>
+<body>
+	<canvas id='carCanvas' style='border:2px solid blue;'></canvas>
+	<canvas id='networkCanvas' style='border:2px solid red;'></canvas>
+	<div id='console'>
+		<div id='verticalButtons'>
+			<button onClick='save()'>💾</button>
+			<button onClick='discard()'>🗑️</button>
+		</div>
+		<p>Console></p>
+		<div id='console_out'>
+		</div>
+	</div>
+</body>
+</html>
