@@ -2,7 +2,13 @@
 <html xmlns:fb="https://www.facebook.com/2008/fbml" xmlns:addthis="https://www.addthis.com/help/api-spec" class="crt desktop crt-desktop" style="overflow: visible;" lang="en-US">
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Bob Gruen – Senior Software Developer</title>
+	<link rel="canonical" href="https://portfolio-dyl7.onrender.com/">
+	<link rel="shortlink" href="https://portfolio-dyl7.onrender.com/">
+	
 	<script src="./include/jquery-3.7.1.min.js"></script>
 	<script type="text/javascript">
 	screenShotFileNames = [ '-', 
@@ -11,7 +17,9 @@
 							'cjconnect-analytics-blaster-customer-home.jpg',
 							'cjconnect-analytics-blaster-smart-detect.jpg',
 							'ROI.jpg',
-							'rfq-home.jpg'
+							'rfq-home.jpg',
+							'asteroids.jpg',
+							'object-detection.jpg'
 						];
 	
 	screenShotHeaders = [ '-', 
@@ -20,7 +28,9 @@
 						  'CONNECT Analytics Machine Home', 
 						  'CONNECT Analytics Smart Detect',
 						  'Return On Investment (ROI) Calculator',
-						  'Request For Quote'
+						  'Request For Quote',
+						  'AI Asteroids',
+						  'Object Detection and Classification'
 						];
 	
 	screenShotDescriptions = [ '-', 
@@ -45,12 +55,19 @@
 						  may require intervention from our Service staff.  This allowed technicians to proactively reach out to customers before problems arose.', 
 						 
 						  // Return On Investment (ROI) Calculator
-						  'The Return On Investment (ROI) Calculator was a tool for the Sales team.  It enabled them to show the customer how quickly \
+						  'The Return On Investment (ROI) Calculator was a tool for the Sales team.  It enabled them to show prospective customers how quickly \
 						   the purchase of Cold Jet equipment would pay for itself and also what their future savings were projected to be.  It was reported \
 						   that opportunities where the salesperson had prepared a ROI had a 10% higher win rate.',
 						 
 						  // Request For Quote
-						  'The Request For Quote system was built for the Customer Service team.  These pages created a completely new revenue stream for Cold Jet.'
+						  'The Request For Quote system was built for the Customer Service team.  These pages created a completely new revenue stream for Cold Jet.',
+
+						  // Asteroids
+						  'This Asteroids simulation is written in JavaScript.  It features an AI agent, whose neural network is trained on 100,000 steps as the page loads. <a href="./Labs/JavaScript/asteroids/index.html" target="_blank">Click here</a> to watch it play!',
+
+						  // Object Detection
+						  'This page opens your webcam and can detect objects in it\'s field of view and also classify them.  In the screenshot below you can see that it has correctly \
+						  detected a couch and a remote control.  This was built using JavaScript and TensorFlow JS.  <a href="./Labs/JavaScript/tf-classifiers/index-obj-classify.html" target="_blank">Click here</a> to try it out yourself.'
 						];
 
 	maxScreenShots = screenShotFileNames.length;
@@ -93,6 +110,8 @@
 		thisScreenShotFileName = screenShotFileNames[idx];
 		thisScreenShotHeader = screenShotHeaders[idx];
 		thisScreenShotDescription = screenShotDescriptions[idx];
+
+		$(".screenshot").show();
 
 		$(".screenshot").attr("src", "./images/" + thisScreenShotFileName);
 		$("h2#port_header").html(thisScreenShotHeader);
@@ -346,13 +365,7 @@ border:1px solid #d2e2fd
 	text-decoration: none;
 }
 </style>
-<meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <script data-cfasync="false" id="ao_optimized_gfonts_config" type="text/javascript">WebFontConfig={google:{families:["Armata:400,700","Aldrich:400,700","Pacifico"] },classes:false, events:false, timeout:1500};</script>
-<title>Bob Gruen – Senior Software Developer</title>
-<link rel="canonical" href="https://portfolio-dyl7.onrender.com/">
-<link rel="shortlink" href="https://portfolio-dyl7.onrender.com/">
 <style type="text/css">
 .at-icon {
 	fill:#fff;
@@ -990,7 +1003,7 @@ li { padding-left:10px; }
 
 									<img src="./images/mycj-bi-market-penetration.jpg" alt="Market Penetration Dashboard" class="screenshot" />
 
-									<iframe id='port_iframe_asteroids' src='./Labs/JavaScript/asteroids/loading.html' data-frameSrc='./Labs/JavaScript/asteroids/index.html' style="display:none;"></iframe>
+									<iframe id='port_iframe_asteroids' src='./Labs/JavaScript/asteroids/loading.html' data-frameSrc='./Labs/JavaScript/asteroids/index.html' style="display:none; width:500px; height:500px;"></iframe>
 
 									<div class='nav' style='margin-top:15px;'>
 										<a href="javascript:port_prev();">< Prev</a> | <a href="javascript:port_next();">Next ></a>
