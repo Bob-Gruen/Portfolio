@@ -800,15 +800,15 @@
 			ctx.textAlign = 'right';
 			ctx.textBaseline = 'middle';
 			ctx.fillStyle = 'white';
-			ctx.font = TEXT_SIZE + 'px dejavu sans mono';
-			ctx.fillText(level + ' :: ' + score, canv.width - SHIP_SIZE / 2, SHIP_SIZE);
+			ctx.font = (TEXT_SIZE * 0.5) + 'px dejavu sans mono';
+			ctx.fillText('Score: ' + level + ' :: ' + score, canv.width - SHIP_SIZE / 2, SHIP_SIZE);
 
 			// draw the high score
 			ctx.textAlign = 'center';
 			ctx.textBaseline = 'middle';
 			ctx.fillStyle = 'white';
-			ctx.font = (TEXT_SIZE * 0.75) + 'px dejavu sans mono';
-			ctx.fillText(levelHigh + ' :: High: ' + scoreHigh, canv.width / 2, SHIP_SIZE);
+			ctx.font = (TEXT_SIZE * 0.5) + 'px dejavu sans mono';
+			ctx.fillText('High: ' + levelHigh + '::' + scoreHigh, canv.width / 2, SHIP_SIZE);
 
 			// detect laser hits on asteroids
 			var ax, ay, ar, lx, ly;
