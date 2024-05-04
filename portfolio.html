@@ -116,6 +116,14 @@
 		$("h2#port_header").html(thisScreenShotHeader);
 		$("p#port_para").html(thisScreenShotDescription);
 
+		for(i=1; i < 9; i++)
+		{
+			if(i == idx)
+				$(".bull_" + i).attr("style", "background-color:#98b0b4;");
+			else
+				$(".bull_" + i).attr("style", "background-color:#fff;");
+		}
+
 		setTimeout(() => {
 			$(".screenshot").fadeIn(500);
 		}, 200);
@@ -940,7 +948,7 @@ li { padding-left:10px; }
 
 .nav { font-size:2em; margin-bottom:15px; text-align: center; }
 
-.nav_bullet { width:15px; height:15px; border:2px solid black; border-radius:15px; display: inline-block; font-size:.5em; } 
+.nav_bullet { width:12px; height:12px; border:2px solid black; border-radius:15px; margin-right:2px; margin-left:2px; margin-bottom:3px; display: inline-block; font-size:.5em; } 
 </style>
 </head>
 <body class="home page-template-default page page-id-90 crt crt-layers-1 crt-nav-on crt-nav-type2 crt-main-nav-on crt-side-box-on crt-sidebar-on" data-color="#b8d0d4" data-new-gr-c-s-check-loaded="8.878.0" data-gr-ext-installed="" style="margin-right: 0px; margin-bottom: 0px;">
@@ -1007,14 +1015,14 @@ li { padding-left:10px; }
 
 									<div class="nav">
 										<a href="javascript:port_prev();">< Prev</a>
-										<div class="nav_bullet"></div> 
-										<div class="nav_bullet"></div> 
-										<div class="nav_bullet"></div> 
-										<div class="nav_bullet"></div> 
-										<div class="nav_bullet"></div> 
-										<div class="nav_bullet"></div> 
-										<div class="nav_bullet"></div> 
-										<div class="nav_bullet"></div> 
+										<div class="nav_bullet bull_1" style="background-color:#98b0b4;"></div> 
+										<div class="nav_bullet bull_2"></div> 
+										<div class="nav_bullet bull_3"></div> 
+										<div class="nav_bullet bull_4"></div> 
+										<div class="nav_bullet bull_5"></div> 
+										<div class="nav_bullet bull_6"></div> 
+										<div class="nav_bullet bull_7"></div> 
+										<div class="nav_bullet bull_8"></div> 
 										<a href="javascript:port_next();">Next ></a>
 									</div>
 
