@@ -35,16 +35,19 @@
 	
 	screenShotDescriptions = [ '-', 
 						  // CONNECT Analytics Machine Home
-						  'This is the home page for customers when they scan the QR code on their machine.  This is just one of the pages \
-						   that I designed and built as part of Cold Jet\'s IoT platform, "CONNECT Analytics".  This page shows insights into the customer\'s use of the machine, \
-						   the settings they used, and the amount of ice that they used.  This allowed customers to better understand their settings.  In many cases, they could make adjustments that resulted in lower dry ice consumption, which equated to lower cost, and thus higher profits, without sacrificing  cleaning quality.', 
+						  'Cold Jet\'s IoT platform, "CONNECT Analytics".  This was an entrepreneurial endeavor that I conceptualized, designed and developed \
+						  outside of work hours.  Enabling remote support, these smart dry ice blasters were the first to market offering this type of on-demand \
+						  machine analytics and insights. \
+						  <br><br> \
+						  This example of a customer facing page provides machine operators, and management, intelligence that allowed them to make adjustments \
+						  that increased cleaning efficiency while decreasing dry ice consumption, which reduced cost and extended the life of the asset.', 
 						 
 						  // Market Penetration Dashboard
 						  'I designed and developed the Market Penetration Dashboard for Cold Jet\'s Marketing team. This interactive tool \
 						  leverages data analysis to identify existing customers with sister facilities that haven\'t adopted Cold Jet \
 						  equipment. It also generates sales opportunity estimates for these untapped markets, empowering the Marketing \
-						  team with data-driven insights to maximize market penetration.<br><br>\
-						  Tech used: PHP, MySQL, HTML5, CSS, Data Analysis, Business Intelligence', 
+						  team with data-driven insights to maximize market penetration.\
+						  <!--<br><br>Tech used: PHP, MySQL, HTML5, CSS, Data Analysis, Business Intelligence-->', 
 
 						  // Opportunity Pipeline Dashboard
 						  'I conceptualized, designed and built the Opportunity Pipeline Dashboard for use by the Sales and Marketing \
@@ -273,28 +276,50 @@ h2, h2#port_page_header { margin-bottom:5px; }
 
 .next_prev { font-size:1em; }
 
-#port_para_cntnr { height:200px; }
+#port_para_cntnr { height:235px; }
+
+@media (max-width: 1110px) 
+{
+	#port_para_cntnr { height:250px; }
+}
+
+@media (max-width: 1015px) 
+{
+	#port_para_cntnr { height:275px; }
+}
 
 @media (max-width: 991px) 
 {
 	* { text-align: center; }
 
 	h2, h2#port_page_header { margin-bottom: 3px; }
+
+	#port_para_cntnr { height:200px; }
 }
 
-@media (max-width: 700px) 
+@media (max-width: 793px) 
+{
+	#port_para_cntnr { height:225px; }
+}
+
+@media (max-width: 700px)
 {
 	#port_para_cntnr { height:250px; }
 }
 
+@media (max-width: 588px) 
+{
+	#port_para_cntnr { height:300px; }
+}
+
 @media (max-width: 535px) 
 {
-	#port_para_cntnr { height:270px; }
+	#port_para_cntnr { height:325px; }
 }
 
 @media (max-width: 475px) 
 {
-	#port_para_cntnr { overflow-y:scroll; }
+	#port_para_cntnr { overflow-y:scroll; height:350px; }
 }
 
 @media (max-width: 450px) 
@@ -302,9 +327,26 @@ h2, h2#port_page_header { margin-bottom:5px; }
 	.next_prev { font-size:.75em; }
 }
 
+@media (max-width: 419px) 
+{
+	#port_para_cntnr { height:370px; }
+}
+
 @media (max-width: 390px) 
 {
+	#port_para_cntnr { height:410px; }
+
 	.next_prev { font-size:.5em; }
+}
+
+@media (max-width: 375px) 
+{
+	#port_para_cntnr { height:430px; }
+}
+
+@media (max-width: 350px) 
+{
+	#port_para_cntnr { height:450px; }
 }
 </style>
 </head>
@@ -364,9 +406,9 @@ h2, h2#port_page_header { margin-bottom:5px; }
 
 									<div id="port_para_cntnr" style="overflow-y: hidden;">
 										<p id='port_para'>
-											This is the home page for customers when they scan the QR code on their machine.  This is just one of the pages 
-											that I designed and built as part of Cold Jet's IoT platform, "CONNECT Analytics".  This page shows insights into the customer's use of the machine, 
-											the settings they used, and the amount of ice that they used.  This allowed customers to better understand their settings.  In many cases, they could make adjustments that resulted in lower dry ice consumption, which equated to lower cost, and thus higher profits, without sacrificing  cleaning quality.
+											Cold Jet's IoT platform, "CONNECT Analytics".  This was an entrepreneurial endeavor that I conceptualized, designed and developed outside of work hours.  Enabling remote support, these smart dry ice blasters were the first to market offering this type of on-demand machine analytics and insights. 
+											<br><br>
+											This example of a customer facing page provides machine operators, and management, intelligence that allowed them to make adjustments that increased cleaning efficiency while decreasing dry ice consumption, which reduced cost and extended the life of the asset.
 										</p>
 									</div>
 
