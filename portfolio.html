@@ -944,11 +944,33 @@ a { color:blue; text-decoration:underline; transition:.4s; }
 a:hover { text-decoration:none; background: #cdfeaa; transition:.4s; }
 a.button:hover { text-decoration:none; background:#b8d0d4; color:black; transition:.4s; }
 li { padding-left:10px; }
+
+h2, h2#port_page_header { margin-bottom:5px; }
+
 .screenshot { border:2px solid #333; }
 
 .nav { font-size:2em; margin-bottom:15px; text-align: center; }
 
-.nav_bullet { width:12px; height:12px; border:2px solid black; border-radius:15px; margin-right:2px; margin-left:2px; margin-bottom:3px; display: inline-block; font-size:.5em; } 
+.nav_bullet { width:12px; height:12px; border:1px solid black; border-radius:15px; margin-right:2px; margin-left:2px; margin-bottom:3px; display: inline-block; font-size:.5em; } 
+
+#port_para_cntnr { height:200px; }
+
+@media (max-width: 991px) 
+{
+	* { text-align: center; }
+
+	h2, h2#port_page_header { margin-bottom: 3px; }
+}
+
+@media (max-width: 700px) 
+{
+	#port_para_cntnr { height:250px; }
+}
+
+@media (max-width: 535px) 
+{
+	#port_para_cntnr { height:270px; }
+}
 </style>
 </head>
 <body class="home page-template-default page page-id-90 crt crt-layers-1 crt-nav-on crt-nav-type2 crt-main-nav-on crt-side-box-on crt-sidebar-on" data-color="#b8d0d4" data-new-gr-c-s-check-loaded="8.878.0" data-gr-ext-installed="" style="margin-right: 0px; margin-bottom: 0px;">
@@ -999,37 +1021,46 @@ li { padding-left:10px; }
 						<section id="about" class="section padd-box">
 							<div class="row">
 								<div class="col-sm-12 clear-mrg text-box">
-									<h2 class="title-lg text-upper" style="margin-bottom:20px;">Samples of Success</h2>
+									<h2 class="title-lg text-upper" id="port_page_header">Samples of Success</h2>
 									
 									<p>Scroll through a few screenshots that are representative of the type of work I enjoy doing.</p>
 
                                     <h2 id="port_header">CONNECT Analytics Machine Home</h2>
 
-									<div style="height:200px; overflow: hidden;">
+									<div id="port_para_cntnr" style="overflow: hidden;">
 										<p id='port_para'>
 											This is the Home page for customers when they scan the QR code on their machine.  This is just one of the pages 
-											that I designed and built as part of Cold Jet\'s IoT platform, "CONNECT Analytics".  This page shows insights into the customer\'s use of the machine, 
+											that I designed and built as part of Cold Jet's IoT platform, "CONNECT Analytics".  This page shows insights into the customer's use of the machine, 
 											the settings they used, and the amount of ice that they used.  This allowed customers to better understand their settings.  In many cases, they could make adjustments that resulted in lower dry ice consumption, which equated to lower cost, and thus higher profits, without sacrificing  cleaning quality.
 										</p>
 									</div>
 
 									<div class="nav">
 										<a href="javascript:port_prev();">< Prev</a>
-										<div class="nav_bullet bull_1" style="background-color:#98b0b4;"></div> 
-										<div class="nav_bullet bull_2"></div> 
-										<div class="nav_bullet bull_3"></div> 
-										<div class="nav_bullet bull_4"></div> 
-										<div class="nav_bullet bull_5"></div> 
-										<div class="nav_bullet bull_6"></div> 
-										<div class="nav_bullet bull_7"></div> 
-										<div class="nav_bullet bull_8"></div> 
+										<div class="nav_bullet bull_1" onClick="update_UI(1);" style="background-color:#98b0b4;"></div> 
+										<div class="nav_bullet bull_2" onClick="update_UI(2);"></div> 
+										<div class="nav_bullet bull_3" onClick="update_UI(3);"></div> 
+										<div class="nav_bullet bull_4" onClick="update_UI(4);"></div> 
+										<div class="nav_bullet bull_5" onClick="update_UI(5);"></div> 
+										<div class="nav_bullet bull_6" onClick="update_UI(6);"></div> 
+										<div class="nav_bullet bull_7" onClick="update_UI(7);"></div> 
+										<div class="nav_bullet bull_8" onClick="update_UI(8);"></div> 
 										<a href="javascript:port_next();">Next ></a>
 									</div>
 
 									<img src="./images/cjconnect-analytics-blaster-customer-home.jpg" alt="CONNECT Analytics Machine Home" class="screenshot left" />
 
-									<div class='nav' style='margin-top:15px;'>
-										<a href="javascript:port_prev();">< Prev</a> | <a href="javascript:port_next();">Next ></a>
+									<div class="nav" style="margin-top:15px;">
+										<a href="javascript:port_prev();">< Prev</a>
+										<div class="nav_bullet bull_1" onClick="update_UI(1);" style="background-color:#98b0b4;"></div> 
+										<div class="nav_bullet bull_2" onClick="update_UI(2);"></div> 
+										<div class="nav_bullet bull_3" onClick="update_UI(3);"></div> 
+										<div class="nav_bullet bull_4" onClick="update_UI(4);"></div> 
+										<div class="nav_bullet bull_5" onClick="update_UI(5);"></div> 
+										<div class="nav_bullet bull_6" onClick="update_UI(6);"></div> 
+										<div class="nav_bullet bull_7" onClick="update_UI(7);"></div> 
+										<div class="nav_bullet bull_8" onClick="update_UI(8);"></div> 
+										<a href="javascript:port_next();">Next ></a>
 									</div>
 								</div>
 							</div>
