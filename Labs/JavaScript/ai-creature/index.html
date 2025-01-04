@@ -1,17 +1,16 @@
 <!doctype html>
 <html>
 <head>
-	<title>AI Creature</title>
+	<title>AI Creatures</title>
 
 	<script type="text/javascript" src="./includes/brain.js"></script>
 	<script type="text/javascript" src="./includes/creature.js"></script>
-	<script type="text/javascript" src="./includes/food.js"></script>
+    <script type="text/javascript" src="./includes/food-manager.js"></script>
+    <script type="text/javascript" src="./includes/food.js"></script>
 	<script type="text/javascript" src="./includes/matter.min.js"></script>
 	<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 	<script src="https://code.highcharts.com/highcharts.js"></script>
-	<script src="https://code.highcharts.com/modules/exporting.js"></script>
-	<script src="https://code.highcharts.com/modules/export-data.js"></script>
-	<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <script src="https://code.highcharts.com/modules/regression.js"></script>
 	<script type='text/javascript'>
 	// Initialize our global variables
 	let canvas = '';
@@ -21,16 +20,17 @@
 	let Engine = '';
 	let render = '';
 	
-	const NUM_CREATURES = 50;
-	const NUM_FOOD_ITEMS = 450;
-	const NUM_POISONED_FOOD = 50;
-	const GENERATION_TIMER = 90; 	// 90 seconds
-	const SIGHT_DISTANCE = 300; 	// 300 pixels
-	const SIGHT_RAYS = 9; 			// number of rays to cast
+	const NUM_CREATURES = 60;
+	const NUM_FOOD_ITEMS = 200;
+    const FOOD_SPAWN_INTERVAL = 5000;   // 2.5 seconds
+	const GENERATION_TIMER = 150; 	    // 150 seconds (2.5 minutes)
+	const SIGHT_DISTANCE = 300; 	    // 300 pixels
+	const SIGHT_RAYS = 16; 			    // number of rays to cast
 
-	let drawRays = false;			// Set this to false to hide sight rays
+    let lastFoodSpawnTime = Date.now();
+
+	let drawRays = false;			    // Set this to false to hide sight rays
 	let drawInfoBox = false;
-	let totalSimTime = 0;
 	let isRunning = true;
 	
 	let creature = '';
@@ -41,17 +41,28 @@
 	let food_poisoned = '';
 	let food_items_poisoned = [];
 
-	let generationCount = 0;
+	let totalSimTime = 0;
 	let generationTimer = GENERATION_TIMER;
+	let generationCount = 0;
+	let simulationStartTime = Date.now();
+	let lastUpdateTime = performance.now();
 
 	let bestScoreEver = 0;
 	let bestScoreRound = 0;
 
 	let bestScores = [];
-	let averageScores = [];
+	let avgScorePerGeneration = [];
+	let averageScore = 0;
+    let averageScoreAllTime = 0;
 	
 	let bestCreatureEver = null;
 	let bestFitnessEver = -Infinity;
+
+	// Array of the brains of one generation of creatures
+	let savedCreature = [];
+
+	let chart_avg = null;
+    let foodManager;
 	/*
 	Set a time for each generation to live
 
@@ -76,83 +87,282 @@
 		 - 10% chance grabbed robot will also be disabled for 10 seconds
 		 - 5% chance grabbed robot will also be destroyed
 	*/
-	function updateChart() 
+	// Add this to your global variables
+
+	// Save the current generation
+	function saveBestCreature() 
 	{
-		Highcharts.chart('chart-container', {
-			chart: {
-				type: 'column'
-			},
-			title: {
-				text: 'Creature Performance by Generation'
-			},
-			xAxis: {
-				categories: Array.from({ length: bestScores.length }, (_, i) => i + 1),
-				title: {
-					text: 'Generation'
-				}
-			},
-			yAxis: {
-				title: {
-					text: 'Score'
-				}
-			},
-			series: [{
-				name: 'Best Score',
-				data: bestScores
-			}, {
-				name: 'Average Score',
-				data: averageScores
-			}]
-		});
+		// Save the best brain according to fitness
+		let bestBrain = creatures.reduce((a, b) => a.fitness > b.fitness ? a : b);
+		let brainJSON = JSON.stringify(bestBrain.net);
+
+		localStorage.setItem('bestBrain', brainJSON);
+		console.log('best creature saved');
 	}
-	
-	function spawnFood(num_food, num_poisoned_food)
+
+	// Load saved creatures
+	function loadBestCreature() 
 	{
-
-		for (let i = 0; i < num_food + num_poisoned_food; i++) 
+		const saved = localStorage.getItem('bestBrain');
+	
+		if (saved) 
 		{
-			let x = Math.random() * canvas.width - 10;
-			let y = Math.random() * canvas.height - 10;
+			savedBrain = JSON.parse(saved);
 
-			if (i < num_food) {
-				let new_food = new Food(x, y);
-				food_items.push(new_food);
+			for(let i=0; i < NUM_CREATURES; i++)
+			{
+				let x = Math.random() * canvas.width;
+				let y = Math.random() * canvas.height;
+
+				let creature = new Creature(x, y, savedBrain);
 			}
-			else {
-				let new_poisoned_food = new PoisonedFood(x, y);
-				food_items_poisoned.push(new_poisoned_food);
-			}
+
+			console.log('Creatures loaded!');
+		}
+		else 
+		{
+			console.log('No saved creatures found to load.');
 		}
 	}
+
+	function initChart() 
+	{
+		try 
+		{
+			chart_avg = Highcharts.chart('chart-container', {
+				chart: {
+					type: 'area',
+					backgroundColor: 'transparent'
+				},
+				title: {
+					text: 'Average Score By Generation',
+					style: {
+						color: '#ffffff',  // This sets the title text color to white
+						fontWeight: 'normal' 
+					}
+				},
+				xAxis: {
+					type: 'linear',
+					labels: {
+						style: {
+							color: '#ffffff'  // This makes x-axis labels white
+						}
+					},
+                    min: 1,
+					lineColor: '#ffffff',  // This makes x-axis line white
+					tickColor: '#ffffff'  // This makes x-axis ticks white
+				},
+				yAxis: {
+					min: 0,
+					title: {
+						text: 'Average Score',
+						style: {
+							color: '#ffffff'  // This makes y-axis title white
+						}
+					},
+					labels: {
+						style: {
+							color: '#ffffff'  // This makes y-axis labels white
+						}
+					},
+					gridLineColor: 'rgba(255, 255, 255, 0.1)',  // This makes grid lines slightly visible
+					lineColor: '#ffffff',  // This makes y-axis line white
+					tickColor: '#ffffff'  // This makes y-axis ticks white
+				},
+				plotOptions: {
+					area: {
+						fillColor: {
+							linearGradient: {
+								x1: 0,
+								y1: 0,
+								x2: 0,
+								y2: 1
+							},
+							stops: [
+								[0, Highcharts.getOptions().colors[0]],
+								[1, Highcharts.color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
+							]
+						},
+						marker: {
+							radius: 1,
+							fillColor: 'white',  // This makes the data points black
+							lineWidth: 1,
+							lineColor: 'white'
+						},
+						lineWidth: 1,
+						lineColor: 'white',  // This makes the line along the top black
+						states: {
+							hover: {
+								lineWidth: 1
+							}
+						},
+						threshold: null
+					}
+				},
+				legend: {
+					enabled: false
+				},
+				tooltip: {
+					pointFormat: 'Avg Score: <b>{point.y:.1f}</b>'
+				},
+				exporting: {
+					enabled: false // This disables the context menu
+				},
+				series: [{
+					name: 'Generation',
+					color: 'rgba(51, 102, 204, 0.8)', // 40% opacity
+					borderWidth: 0, // This removes the white stroke
+					groupPadding: 0,
+                    pointStart: 1,
+					data: avgScorePerGeneration,
+					dataLabels: {
+						enabled: false,
+						rotation: -90,
+						color: '#FFFFFF',
+						inside: true,
+						verticalAlign: 'top',
+						format: 'Generation: {point.y:.1f}; Score {point.x:.1f}', // one decimal
+						y: 10, // 10 pixels down from the top
+						style: {
+							fontSize: '13px',
+							fontFamily: 'Verdana, sans-serif'
+						}
+					}
+				}, 
+                {
+                    name: 'Trend Line',
+                    type: 'line',
+                    color: 'rgba(255, 255, 29, 0.8)',
+                    lineWidth: 3,
+                    marker: {
+                        enabled: false
+                    },
+                    enableMouseTracking: true, 
+                    regression: true,
+                    regressionSettings: {
+                        type: 'linear',
+                        color: 'rgba(255, 215, 0, 0.8)', // Match the line color
+                        name: 'Trend',
+                        lineWidth: 3
+                    }
+                }]
+			});
+		}
+		catch (error)
+		{
+			console.error("Error initializing chart: ", error);
+
+			return null;
+		}
+	}
+
+	// update chart with new data in avgScorePerGeneration
+    function updateChart() 
+    {
+        if(!chart_avg) 
+        {
+            return;
+        }
+
+        try {
+            let dataArray = avgScorePerGeneration;
+
+            if (typeof avgScorePerGeneration === 'string') 
+            {
+                dataArray = avgScorePerGeneration.split(',').map(Number);
+            }
+
+            if (chart_avg.series[0]) 
+            {
+                chart_avg.series[0].setData(dataArray);
+
+                // Calculate regression line
+                const { slope, intercept } = calculateRegressionLine(dataArray);
+                const regressionData = dataArray.map((_, i) => [i + 1, slope * (i + 1) + intercept]);
+
+                // Update or add regression line series
+                if(chart_avg.series[1]) 
+                {
+                    chart_avg.series[1].setData(regressionData);
+                } 
+                else 
+                {
+                    chart_avg.addSeries({
+                        name: 'Trend Line',
+                        type: 'line',
+                        color: 'rgba(255, 215, 0, 0.8)',
+                        lineWidth: 3,
+                        marker: { enabled: false },
+                        data: regressionData
+                    });
+                }
+
+                chart_avg.redraw();
+            } 
+            else 
+            {
+                console.error('Chart series not found');
+            }
+        } 
+        catch (error) 
+        {
+            console.error('Error updating chart:', error);
+        }
+    }
+    
+    function calculateRegressionLine(data) 
+    {
+        let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        const n = data.length;
+
+        for (let i = 0; i < n; i++) 
+        {
+            sumX += i + 1;
+            sumY += data[i];
+            sumXY += (i + 1) * data[i];
+            sumX2 += (i + 1) * (i + 1);
+        }
+
+        const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+
+        return { slope, intercept };
+    }
+    
+    function spawnFood(num_food) 
+    {
+        foodManager = new FoodManager(canvas);
+
+        for (let i = 0; i < num_food; i++) 
+        {
+            foodManager.spawnFoodCluster(false);
+        }
+
+        return foodManager;
+    }
 
 	function calculateFitness(creature) 
 	{
-		const foodScore = creature.foodCount * 20;
-		const explorationScore = calculateExplorationScore(creature) * 2;
-		const energyScore = creature.energy;
-		const edgePenalty = calculateEdgePenalty(creature);
+		const foodScore = creature.foodCount * 100;
+		const explorationScore = calculateExplorationScore(creature) * 100;
+		const energyScore = creature.energy * 20;
+		//const edgePenalty = calculateEdgePenalty(creature) * 20;
 		
-		return foodScore + explorationScore + energyScore - edgePenalty;
+		return foodScore + explorationScore + energyScore;
 	}
 
 	function calculateExplorationScore(creature) 
-	{
-		// Divide the canvas into a grid and track visited cells
+    {
+        // Divide the canvas into a grid and track visited cells
 		const gridSize = 10;
-		const cellWidth = canvas.width / gridSize;
-		const cellHeight = canvas.height / gridSize;
-		const cellX = Math.floor(creature.body.position.x / cellWidth);
-		const cellY = Math.floor(creature.body.position.y / cellHeight);
-		
-		if (!creature.visitedCells) {
-			creature.visitedCells = new Set();
-		}
-		
-		const cellKey = `${cellX},${cellY}`;
-		creature.visitedCells.add(cellKey);
-		
-		return creature.visitedCells.size;
-	}
+		const grid = Array.from({ length: gridSize }, () => Array.from({ length: gridSize }, () => false));
+
+		// Calculate the percentage of the map explored
+		const totalCells = Math.ceil(canvas.width / gridSize) * Math.ceil(canvas.height / gridSize);
+		const exploredPercentage = creature.visitedCells.size / totalCells;
+
+		return exploredPercentage * 100; // Return a score between 0 and 100
+    }
 
 	function calculateEdgePenalty(creature) 
 	{
@@ -167,7 +377,7 @@
 		return distanceToEdge < edgeThreshold ? (edgeThreshold - distanceToEdge) * 2 : 0;
 	}
 
-	function tournamentSelection(creatures, tournamentSize = 8) 
+	function tournamentSelection(creatures, tournamentSize = 6) 
 	{
 		let selected = [];
 	
@@ -189,43 +399,55 @@
 		return selected;
 	}
 
-	function crossover(brain1, brain2, crossoverRate = 0.5) 
+	function crossover(brain1, brain2, crossoverRate = 0.7) 
 	{
-	    let newBrain = new brain.NeuralNetwork({
-	        inputSize: 7,
-	        hiddenLayers: [24, 18, 12],
-	        outputSize: 8,
-	        activation: 'leaky-relu',
-	        learningRate: 0.25,
-	        errorThresh: 0.001
-	    });
-	
-	    if (brain1 && brain1.weights && brain1.biases && 
-	        brain2 && brain2.weights && brain2.biases) 
-	    {
-	        // Crossover weights
-	        newBrain.weights = brain1.weights.map((layerWeights, i) => {
-	            return layerWeights.map((neuronWeights, j) => {
-	                return neuronWeights.map((weight, k) => {
-	                    return Math.random() < crossoverRate ? brain1.weights[i][j][k] : brain2.weights[i][j][k];
-	                });
-	            });
-	        });
-	
-	        // Crossover biases
-	        newBrain.biases = brain1.biases.map((layerBiases, i) => {
-	            return layerBiases.map((bias, j) => {
-	                return Math.random() < crossoverRate ? brain1.biases[i][j] : brain2.biases[i][j];
-	            });
-	        });
-	    } 
-	    else 
-	    {
-	        console.warn("One or both parent brains are invalid. Initializing a new brain.");
-	        newBrain.initialize();
-	    }
-	
-	    return newBrain;
+		let newBrain = new brain.NeuralNetwork({
+			inputSize: 9,
+            hiddenLayers: [128, 64, 32, 24, 16, 8, 8],
+			outputSize: 8,
+			activation: 'leaky-relu',
+			learningRate: 0.01 + Math.random() * 0.009,
+			errorThresh: 0.001
+		});
+
+		if (brain1 && brain1.weights && brain1.biases && 
+			brain2 && brain2.weights && brain2.biases) 
+		{
+			// Crossover weights
+			newBrain.weights = brain1.weights.map((layerWeights, i) => {
+				if (Array.isArray(layerWeights)) {
+					return layerWeights.map((neuronWeights, j) => {
+						if (Array.isArray(neuronWeights)) {
+							return neuronWeights.map((weight, k) => {
+								return Math.random() < 0.5 ? brain1.weights[i][j][k] : brain2.weights[i][j][k];
+							});
+						} else {
+							return Math.random() < 0.5 ? brain1.weights[i][j] : brain2.weights[i][j];
+						}
+					});
+				} else {
+					return Math.random() < 0.5 ? brain1.weights[i] : brain2.weights[i];
+				}
+			});
+
+			// Crossover biases
+			newBrain.biases = brain1.biases.map((layerBiases, i) => {
+				if (Array.isArray(layerBiases)) {
+					return layerBiases.map((bias, j) => {
+						return Math.random() < 0.5 ? brain1.biases[i][j] : brain2.biases[i][j];
+					});
+				} else {
+					return Math.random() < 0.5 ? brain1.biases[i] : brain2.biases[i];
+				}
+			});
+		} 
+		else 
+		{
+			console.warn("One or both parent brains are invalid. Initializing a new brain.");
+			newBrain.initialize();
+		}
+
+		return newBrain;
 	}
 
 	function mutate(brain, mutationRate = 0.2, mutationAmount = 0.2)
@@ -238,6 +460,7 @@
 					{
 						return weight + randomGaussian() * mutationAmount;
 					}
+
 					return weight;
 				})
 			)
@@ -249,6 +472,7 @@
 				if (Math.random() < mutationRate) {
 					return bias + randomGaussian() * mutationAmount;
 				}
+
 				return bias;
 			})
 		);
@@ -269,6 +493,23 @@
 
 	function evolvePopulation()
 	{
+		// Save the AvgScore/Round and update the chart
+        if(averageScore != 0)
+        {
+    		avgScorePerGeneration.push(averageScore);
+        }
+
+        // calculate the average of all values in the avgScorePerGeneration array
+        let sum = avgScorePerGeneration.reduce((a, b) => a + b, 0);
+        averageScoreAllTime = 0;
+
+        if (sum != 0 || avgScorePerGeneration.length != 0) 
+        {
+            averageScoreAllTime = Number(((sum / avgScorePerGeneration.length).toFixed(2)));
+        }        
+
+		updateChart();
+
 		const newCreatures = [];
 		let newBrain = null;
 
@@ -284,13 +525,60 @@
 				bestCreatureEver = bestCreature;
 				bestFitnessEver = calculateFitness(bestCreature);
 
-				newCreatures.push(new Creature(bestCreatureEver.brain));
+				let x = Math.random() * canvas.width;
+				let y = Math.random() * canvas.height;
+
+				newCreatures.push(new Creature(x, y, bestCreatureEver.brain));
+				newCreatures.push(new Creature(x, y, bestCreatureEver.brain));
+				newCreatures.push(new Creature(x, y, bestCreatureEver.brain));
+				newCreatures.push(new Creature(x, y, bestCreatureEver.brain));
+			}
+
+			// Sort creatures by fitness
+			creatures.sort((a, b) => calculateFitness(b) - calculateFitness(a));
+			
+			const eliteCount = Math.floor(creatures.length * 0.35); // Preserve top 35%
+
+			// Add elite creatures to new population
+			for (let i = 0; i < eliteCount; i++) 
+			{
+				let x = Math.random() * canvas.width;
+				let y = Math.random() * canvas.height;
+
+				newCreatures.push(new Creature(x, y, creatures[i].brain));
 			}
 
 			while (newCreatures.length < creatures.length) 
 			{
 				const [parent1, parent2] = tournamentSelection(creatures);
-				const childBrain = crossover(parent1.net, parent2.net);
+
+				let childBrain;
+
+				// 15% chance of creating a brand new random brain
+				if (Math.random() < 0.15) 
+				{
+					childBrain = new brain.NeuralNetwork({
+						inputSize: 9,
+                        hiddenLayers: [128, 64, 32, 24, 16, 8, 8],
+						outputSize: 8,
+						activation: 'leaky-relu',
+						learningRate: 0.01 + Math.random() * 0.009, // Random learning rate between 0.01 and 0.1
+						errorThresh: 0.001
+					});
+
+					childBrain.initialize();
+				} 
+				else 
+				{
+					// Normal crossover
+					childBrain = crossover(parent1.net, parent2.net);
+
+					// 25% chance of second crossover with best creature
+					if (Math.random() < 0.25)
+					{
+						childBrain = crossover(childBrain, bestCreatureEver.net, 0.3); // Using a lower crossover rate
+					}
+				}
 				
 				mutate(childBrain);
 				
@@ -326,19 +614,20 @@
 		creatures = newCreatures;
 	}
 
-	function spawnCreatures(num, newBrain) {
+	function spawnCreatures(num, newBrain) 
+	{
 		// newBrain seems to have issues 
 		// Start here and see if newBrain looks right or not
 		// If so, look forward
 		// If not, look at this line: "newBrain = evolveBrain();" -- located in resetWorld()
 
 		// Spawn new creatures
-		for (let i = 0; i < num; i++) {
+		for (let i = 0; i < num; i++) 
+		{
 			let x = Math.random() * canvas.width;
 			let y = Math.random() * canvas.height;
 
 			let creature = new Creature(x, y, newBrain);
-			//let creature = new Creature(x, y);
 
 			creatures.push(creature);
 		}
@@ -365,10 +654,9 @@
 		}
 		food_items_poisoned = [];
 
-		// Spawn new Creatures, Food and Poisoned Food
-
-		//spawnCreatures(NUM_CREATURES, newBrain);
-		spawnFood(NUM_FOOD_ITEMS, NUM_POISONED_FOOD);
+		// Spawn new Food and Poisoned Food
+        foodManager = spawnFood(NUM_FOOD_ITEMS);
+        lastFoodSpawnTime = Date.now();     // Reset the food spawn timer
 
 		bestScoreRound = 0;
 
@@ -390,7 +678,8 @@
 		return maxIndex;
 	}
 
-	function formatTime(seconds) {
+	function formatTime(seconds) 
+    {
 		const hours = Math.floor(seconds / 3600);
 		const minutes = Math.floor((seconds % 3600) / 60);
 		const secs = Math.floor(seconds % 60);
@@ -404,6 +693,9 @@
 
 	function gameLoop() 
 	{
+        // get the sum of the creature.foodCount for all creatures
+        const totalFoodEaten = creatures.reduce((sum, creature) => sum + creature.foodCount, 0);
+        
 		// clear canvas
 		ctx.beginPath();
 
@@ -412,12 +704,30 @@
 		ctx.textAlign = 'left';
 
 		ctx.fillText("Generation: " + generationCount, 20, 40);
-		ctx.fillText("Generation Time Left: " + Math.floor(generationTimer / 60) + "m " + (generationTimer % 60) + "s", 20, 80);
+		ctx.fillText("Generation Time Left: " + Math.floor(Math.round(generationTimer) / 60) + "m " + Math.round(generationTimer % 60) + "s", 20, 80);
 		ctx.fillText("Total Sim Time: " + formatTime(totalSimTime), 20, 120);
-		ctx.fillText("Best Score (ever): " + bestScoreEver, 20, 160);
+		ctx.fillText("Best Score (all time): " + bestScoreEver, 20, 160); 
+        
 		ctx.fillText("Best Score (round): " + bestScoreRound, 20, 200);
+        ctx.fillText(`Avg Score (all time): ${averageScoreAllTime.toFixed(2)}`, 20, 240);
+        ctx.fillText("Avg Score (round): " + averageScore.toFixed(2), 20, 280);
+        ctx.fillText("Total Food Eaten: " + totalFoodEaten, 20, 320);
+        ctx.fillText("Total Food Available: " + food_items.length, 20, 360);
 		
 		ctx.stroke();
+
+        // calculate the time
+        const currentTime = Date.now();
+
+        if (currentTime - lastFoodSpawnTime >= FOOD_SPAWN_INTERVAL) 
+        {
+            foodManager.spawnFoodCluster(Math.random() < 0.25); // 25% chance of poisoned food
+            lastFoodSpawnTime = currentTime;
+        }
+
+		let totFoodEatenThisRound = 0;
+
+        foodManager.update(Date.now());
 
 		if(isRunning)
 		{
@@ -425,86 +735,88 @@
 			{
 				curr_creature = creatures[t];
 
+				totFoodEatenThisRound += curr_creature.foodCount;
+		
 				// Gather Data - Update what the creature sees
 				// Cast rays for sight
 				if (curr_creature.energy > 1) 
 				{
 					for (let i = 0; i < SIGHT_RAYS; i++) 
-				{
-					let angle = (i - (SIGHT_RAYS - 1) / 2) * Math.PI / 12 + Math.PI / 2;
-					let rayEnd = {
-						x: curr_creature.body.position.x + SIGHT_DISTANCE * Math.cos(curr_creature.body.angle + angle),
-						y: curr_creature.body.position.y + SIGHT_DISTANCE * Math.sin(curr_creature.body.angle + angle)
-					};
+                    {
+                        let angle = (i - (SIGHT_RAYS - 1) / 2) * Math.PI / 12 + Math.PI / 2;
+                        let rayEnd = {
+                            x: curr_creature.body.position.x + SIGHT_DISTANCE * Math.cos(curr_creature.body.angle + angle),
+                            y: curr_creature.body.position.y + SIGHT_DISTANCE * Math.sin(curr_creature.body.angle + angle)
+                        };
 
-					let allBodies = [...food_items, ...food_items_poisoned].map(f => f.body);
-					creatures.forEach(creature => {
-						if (creature !== curr_creature) 
-						{
-							allBodies.push(creature.body, creature.leftArm, creature.rightArm);
-						}
-					});
+                        let allBodies = [...food_items, ...food_items_poisoned].map(f => f.body);
+                        creatures.forEach(creature => {
+                            if (creature !== curr_creature) 
+                            {
+                                allBodies.push(creature.body, creature.leftArm, creature.rightArm);
+                            }
+                        });
 
-					let rayCollisions = Matter.Query.ray(allBodies, curr_creature.body.position, rayEnd);
+                        let rayCollisions = Matter.Query.ray(allBodies, curr_creature.body.position, rayEnd);
 
-					if (rayCollisions.length > 0) 
-					{
-						let nearestCollision = rayCollisions.reduce((nearest, current) =>
-							(current.distance < nearest.distance) ? current : nearest
-						);
+                        if (rayCollisions.length > 0) 
+                        {
+                            let nearestCollision = rayCollisions.reduce((nearest, current) =>
+                                (current.distance < nearest.distance) ? current : nearest
+                            );
 
-						if (food_items.some(f => f.body === nearestCollision.body)) 
-						{
-							curr_creature.nearestObjectType = 'food';
-						} 
-						else if (food_items_poisoned.some(f => f.body === nearestCollision.body)) 
-						{
-							curr_creature.nearestObjectType = 'poison';
-						} 
-						else if (creatures.some(c => c !== curr_creature && c.body === nearestCollision.body)) 
-						{
-							curr_creature.nearestObjectType = 'robot_body';
-						} 
-						else if (creatures.some(c => c !== curr_creature && (c.leftArm === nearestCollision.body || c.rightArm === nearestCollision.body))) 
-						{
-							curr_creature.nearestObjectType = 'robot_arm';
-						}
+                            if (food_items.some(f => f.body === nearestCollision.body)) 
+                            {
+                                curr_creature.nearestObjectType = 'food';
+                            } 
+                            else if (food_items_poisoned.some(f => f.body === nearestCollision.body)) 
+                            {
+                                curr_creature.nearestObjectType = 'poison';
+                            } 
+                            else if (creatures.some(c => c !== curr_creature && c.body === nearestCollision.body)) 
+                            {
+                                curr_creature.nearestObjectType = 'robot_body';
+                            } 
+                            else if (creatures.some(c => c !== curr_creature && (c.leftArm === nearestCollision.body || c.rightArm === nearestCollision.body))) 
+                            {
+                                curr_creature.nearestObjectType = 'robot_arm';
+                            }
 
-						curr_creature.nearestObjectXPos = nearestCollision.body.position.x;
-						curr_creature.nearestObjectYPos = nearestCollision.body.position.y;
+                            curr_creature.nearestObjectXPos = nearestCollision.body.position.x;
+                            curr_creature.nearestObjectYPos = nearestCollision.body.position.y;
 
-						if (drawRays) 
-						{
-							const bodyRadius = 10; // Half of the body width
-							const rayStartX = curr_creature.body.position.x + Math.cos(curr_creature.body.angle + angle) * (bodyRadius + 15);
-							const rayStartY = curr_creature.body.position.y + Math.sin(curr_creature.body.angle + angle) * (bodyRadius + 15);
+                            if (drawRays) 
+                            {
+                                const bodyRadius = 10; // Half of the body width
+                                const rayStartX = curr_creature.body.position.x + Math.cos(curr_creature.body.angle + angle) * (bodyRadius + 15);
+                                const rayStartY = curr_creature.body.position.y + Math.sin(curr_creature.body.angle + angle) * (bodyRadius + 15);
 
-							ctx.beginPath();
-							ctx.moveTo(rayStartX, rayStartY);
-							ctx.lineTo(nearestCollision && nearestCollision.point ? nearestCollision.point.x : rayEnd.x, nearestCollision && nearestCollision.point ? nearestCollision.point.y : rayEnd.y);
-							ctx.strokeStyle = curr_creature.nearestObjectType === 'food' ? 'green' :
-								(curr_creature.nearestObjectType === 'poison' ? 'red' :
-									(curr_creature.nearestObjectType === 'robot_body' ? 'blue' :
-										(curr_creature.nearestObjectType === 'robot_arm' ? 'purple' : 'white')));
-							ctx.stroke();
-						}
-					}
-					else 
-					{
-						if (drawRays) 
-						{
-							const bodyRadius = 10; // Half of the body width
-							const rayStartX = curr_creature.body.position.x + Math.cos(curr_creature.body.angle + angle) * (bodyRadius + 5);
-							const rayStartY = curr_creature.body.position.y + Math.sin(curr_creature.body.angle + angle) * (bodyRadius + 5);
+                                ctx.beginPath();
+                                ctx.moveTo(rayStartX, rayStartY);
+                                ctx.lineTo(nearestCollision && nearestCollision.point ? nearestCollision.point.x : rayEnd.x, nearestCollision && nearestCollision.point ? nearestCollision.point.y : rayEnd.y);
+                                ctx.strokeStyle = curr_creature.nearestObjectType === 'food' ? 'green' :
+                                    (curr_creature.nearestObjectType === 'poison' ? 'red' :
+                                        (curr_creature.nearestObjectType === 'robot_body' ? 'blue' :
+                                            (curr_creature.nearestObjectType === 'robot_arm' ? 'purple' : 'white')));
+                                ctx.stroke();
+                            }
+                        }
+                        else 
+                        {
+                            if (drawRays) 
+                            {
+                                const bodyRadius = 10; // Half of the body width
+                                const rayStartX = curr_creature.body.position.x + Math.cos(curr_creature.body.angle + angle) * (bodyRadius + 5);
+                                const rayStartY = curr_creature.body.position.y + Math.sin(curr_creature.body.angle + angle) * (bodyRadius + 5);
 
-							ctx.beginPath();
-							ctx.moveTo(rayStartX, rayStartY);
-							ctx.lineTo(rayEnd.x, rayEnd.y);
-							ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
-							ctx.stroke();
-						}
-					}
-				}
+                                ctx.beginPath();
+                                ctx.moveTo(rayStartX, rayStartY);
+                                ctx.lineTo(rayEnd.x, rayEnd.y);
+                                ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
+                                ctx.stroke();
+                            }
+                        }
+				    }
 				}
 
 				let x_creature_vel = 0;
@@ -516,13 +828,13 @@
 
 				if(curr_creature.energy >= 50)
 				{
-					x_creature_vel = (Math.floor(Math.random() * 2) + 1) * 0.1;
-					y_creature_vel = (Math.floor(Math.random() * 2) + 1) * 0.1;
+					x_creature_vel = (Math.floor(Math.random() * 2) + 1) * 0.25;
+					y_creature_vel = (Math.floor(Math.random() * 2) + 1) * 0.25;
 
-					if(x_creature_vel > 1) x_creature_vel = 1;
-					if(x_creature_vel < -1) x_creature_vel = -1;
-					if(y_creature_vel > 1) y_creature_vel = 1;
-					if(y_creature_vel < -1) y_creature_vel = -1;
+					if(x_creature_vel > 1.25) x_creature_vel = 1.25;
+					if(x_creature_vel < -1.25) x_creature_vel = -1.25;
+					if(y_creature_vel > 1.25) y_creature_vel = 1.25;
+					if(y_creature_vel < -1.25) y_creature_vel = -1.25;
 
 					x_creature_left_arm_vel = (Math.floor(Math.random() * 2) + 1) * 0.001;
 					y_creature_right_arm_vel = (Math.floor(Math.random() * 2) + 1) * 0.001;
@@ -657,8 +969,19 @@
 
 				curr_creature.drawInfoBox(ctx);
 
+				curr_creature.updateExplorationScore();
+
 				Matter.Engine.update(engine);
 			}
+
+			if(totFoodEatenThisRound != 0 && NUM_CREATURES != 0)
+			{
+				averageScore = totFoodEatenThisRound / NUM_CREATURES;
+			}
+			else
+				averageScore = 0;
+
+			//avgerageSPS = totFoodEatenThisRound / seconds_elapsed;
 		}
 
 		if (generationTimer <= 0) 
@@ -678,11 +1001,17 @@
 	{
 		if(isRunning)
 		{
-			// Update the Total Sim Time
-			totalSimTime += 1;
+			const currentTime = performance.now();
+			const elapsedMilliseconds = currentTime - lastUpdateTime;
 
-			// Update the Generation Time
-			generationTimer--;
+			// Update the Total Sim Time (in seconds)
+			totalSimTime += elapsedMilliseconds / 1000;
+
+			// Update the Generation Time (in seconds)
+			generationTimer -= elapsedMilliseconds / 1000;
+
+			// Update lastUpdateTime for the next call
+			lastUpdateTime = currentTime;
 		}
 	}
 
@@ -726,6 +1055,8 @@
 		resetWorld();
 		generationCount++;
 
+		initChart();
+
 		Matter.Events.on(engine, 'collisionStart', function (event) {
 			let pairs = event.pairs;
 
@@ -752,7 +1083,8 @@
 						{
 							let foodIndex = food_items_poisoned.findIndex(food => food.body === bodyB);
 						
-							if (foodIndex !== -1) {
+							if (foodIndex !== -1) 
+                            {
 								World.remove(engine.world, food_items_poisoned[foodIndex].body);
 								food_items_poisoned.splice(foodIndex, 1);
 								creature.decrementFoodCount(2);
@@ -789,7 +1121,7 @@
 			}
 		});
 
-		setInterval(updateTimers, 1000);
+		setInterval(updateTimers, 250);
 
 		// Lastly, start the game loop
 		gameLoop();
@@ -797,7 +1129,6 @@
 
 	document.addEventListener('keydown', function (event) 
 	{
-		console.log('event happened')
 		// Pause/un-pause simulation
 		if (event.key === 'p' || event.key === 'P') 
 		{
@@ -812,15 +1143,14 @@
 		// Save the best brain
 		if (event.key === 's' || event.key === 'S') 
 		{
-			// Save the best brain according to fitness
-			let bestBrain = creatures.reduce((a, b) => a.fitness > b.fitness? a : b);
-			let brainJSON = JSON.stringify(bestBrain.net);
-			
-			localStorage.setItem('bestBrain', brainJSON);
-			
-			console.log('Best brain saved to localstorage');
-			console.dir(bestBrain.net);
+			saveBestCreature();
 		}
+
+		// Load the best brain
+		if (event.key === 'l' || event.key === 'L') 
+        {
+            loadBestCreature();
+        }
 		
 		// Toggle info box on/off
 		if (event.key === 'i' || event.key === 'I') 
@@ -833,6 +1163,9 @@
 </head>
 <body>
 	<canvas id="canvas1"></canvas>
-	<div id='bg_console'></div>
+	<div id='bg_console'>
+	</div>
+	<div id='chart-container' style='height:200px; width:300px; border:1px solid #eee;'>
+	</div>
 </body>
 </html>
