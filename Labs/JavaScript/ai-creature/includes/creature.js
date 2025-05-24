@@ -69,7 +69,7 @@ class Creature
 		else 
 		{
 			this.net = new brain.NeuralNetwork({
-				inputSize: 9,
+				inputSize: 12, // Updated inputSize
                 hiddenLayers: [128, 64, 32, 24, 16, 8, 8],
 				outputSize: 8,
 				activation: 'leaky-relu',
@@ -283,64 +283,73 @@ class Creature
 		this.updateCreatures();
 	}
 
-	normalizeInputs(x, y, energy, foodCount, leftArmAngle, rightArmAngle, nearestObjectTypeNum, nearestObjectXPos, nearestObjectYPos)
+	// normalizeInputs now takes creature's current position for relative calculations
+	// and nearestObjectType as a string for one-hot encoding.
+	normalizeInputs(creatureX, creatureY, energy, foodCount, leftArmAngle, rightArmAngle, nearestObjectType, objectX, objectY)
 	{
-		return [
-			x / canvas.width,
-			y / canvas.height,
-			energy / 100,  // Assuming max energy is 100
-			foodCount / 10,  // Normalize based on expected max
-			(leftArmAngle + Math.PI) / (2 * Math.PI),
-			(rightArmAngle + Math.PI) / (2 * Math.PI),
-			nearestObjectTypeNum,
-			nearestObjectXPos,
-			nearestObjectYPos
+		// One-hot encoding for nearestObjectType
+		const isFood = nearestObjectType === 'food' ? 1 : 0;
+		const isPoison = nearestObjectType === 'poison' ? 1 : 0;
+		const isRobotBody = nearestObjectType === 'robot_body' ? 1 : 0;
+		const isRobotArm = nearestObjectType === 'robot_arm' ? 1 : 0;
 
+		// Calculate relative positions
+		const relativeX = objectX - creatureX;
+		const relativeY = objectY - creatureY;
+
+		// Normalize relative positions
+		// SIGHT_DISTANCE is defined in sketch.js (usually 200).
+		// Ensure it's accessible here or pass it. Using a default if not defined.
+		const sightDistance = typeof SIGHT_DISTANCE !== 'undefined' ? SIGHT_DISTANCE : 200; 
+		const normalizedRelativeX = relativeX / sightDistance;
+		const normalizedRelativeY = relativeY / sightDistance;
+
+		return [
+			creatureX / canvas.width, // creature's own X position normalized
+			creatureY / canvas.height, // creature's own Y position normalized
+			energy / 100,  // Assuming max energy is 100
+			foodCount / 10,  // Normalize based on expected max food count
+			(leftArmAngle + Math.PI) / (2 * Math.PI), // Normalize angle to 0-1 range
+			(rightArmAngle + Math.PI) / (2 * Math.PI), // Normalize angle to 0-1 range
+			isFood,
+			isPoison,
+			isRobotBody,
+			isRobotArm,
+			normalizedRelativeX,
+			normalizedRelativeY
 		];
 	}
 	
 	// Function to get the neural network's output
-	getNetworkOutput(canvas, x, y, nearestObjectType, nearestObjectXPos, nearestObjectYPos, energy, foodCnt) 
+	// Parameters currentCreatureX and currentCreatureY are the creature's current x and y, needed for normalizeInputs
+	getNetworkOutput(canvas, currentCreatureX, currentCreatureY, nearestObjectType, nearestObjectXPos, nearestObjectYPos, energy, foodCnt) 
 	{
-		let nearestObjectTypeNum = 0.0; // 0 for no object, .1 for food, .2 for poison, .3 for robot_body, .4 for robot_arm
-
-		if (nearestObjectType === 'food')
-			nearestObjectTypeNum = .1;
-		else if (nearestObjectType === 'poison')
-			nearestObjectTypeNum = .2;
-		else if (nearestObjectType === 'robot_body')
-			nearestObjectTypeNum = .3;
-		else if (nearestObjectType === 'robot_arm')
-			nearestObjectTypeNum = .4;
+		// nearestObjectType (string) is passed directly to normalizeInputs for one-hot encoding.
+		// The old nearestObjectTypeNum logic is removed.
 
 		// Calculate leftArmAngle and rightArmAngle
 		const leftArmAngle = Matter.Vector.angle(this.body.position, this.leftArm.position);
 		const rightArmAngle = Matter.Vector.angle(this.body.position, this.rightArm.position);
 
+		// Call normalizeInputs with the creature's current position
 		let input = this.normalizeInputs(
-			x,
-			y,
+			currentCreatureX, // creature's current X
+			currentCreatureY, // creature's current Y
 			energy,
 			foodCnt,
 			leftArmAngle,
 			rightArmAngle,
-			nearestObjectTypeNum,
+			nearestObjectType, // Pass the string type directly
 			nearestObjectXPos,
 			nearestObjectYPos
 		);
 
 		let pred = 0;
 
-		if (Math.random() < 0.1) {  // 10% chance of random action
-			pred = Math.floor(Math.random() * 8);
-		} else {
-			pred = this.net.run(input);
+		pred = this.net.run(input); // Always use the network output
 		    
-			// const actionIndex = pred.indexOf(Math.max(...pred));
-
-			// console.log(`Creature chose action ${actionIndex} with confidence ${pred[actionIndex]}%`);
-
-		}
+		// const actionIndex = pred.indexOf(Math.max(...pred));
+		// console.log(`Creature chose action ${actionIndex} with confidence ${pred[actionIndex]}%`);
 
 		return pred;
 	}
