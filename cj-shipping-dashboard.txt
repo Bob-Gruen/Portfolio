@@ -1,0 +1,5 @@
+Pictures of it is in ./RAW-Screenshots/
+
+It is a picture taken from the manufacturing floor at Cold Jet.  It shows a shipping/receiving dashboard I built for them.  Details again are, a 55" LG Digital Signage Display with an AppSpace ChromeOS based digital signage system.
+ 
+The picture was taken from about 10' away and the bottom of the dashboard is ~8' off of the ground.
