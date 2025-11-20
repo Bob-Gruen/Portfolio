@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+    <title>AI Creatures</title>
+    <link rel="stylesheet" type="text/css" href="./css/creature.css">
+</head>
+<body>
+    <canvas id="canvas1"></canvas>
+    <div id='bg_console' class='info-panels'></div>
+    <div id='chart-container' class='info-panels'></div>
+    <div id='network-visualization' class='info-panels'>
+        <canvas id='network-canvas'></canvas>
+    </div>
+
+    <!-- Load libraries first -->
+    <script type="text/javascript" src="./includes/matter.min.js" defer></script>
+    <script src="./includes/Highcharts/code/highcharts.js" defer></script>
+    <script type="text/javascript" src="./includes/brain.js" defer></script>
+
+    <!-- Then load your application scripts -->
+    <script type="text/javascript" src="./includes/spatial-grid.js" defer></script>
+    <script type="text/javascript" src="./includes/lake.js" defer></script>
+    <script type="text/javascript" src="./includes/food.js" defer></script>
+    <script type="text/javascript" src="./includes/food-manager.js" defer></script>
+    <script type="text/javascript" src="./includes/creature.js" defer></script>
+    <script type="text/javascript" src="./includes/simulation.js" defer></script>
+    <script type="text/javascript" src="./main.js" defer></script>
+</body>
+</html>
