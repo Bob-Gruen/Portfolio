@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>AI Creatures</title>
+    <link rel="stylesheet" type="text/css" href="./css/creature.css">
+    <link rel="stylesheet" type="text/css" href="./css/controls.css">
+</head>
+
+<body>
+    <canvas id="canvas1"></canvas>
+    <div id='bg_console' class='info-panels'></div>
+    <div id='chart-container' class='info-panels'></div>
+    <div id='network-visualization' class='info-panels'>
+        <canvas id='network-canvas'></canvas>
+    </div>
+
+    <div id="control-panel-toggle" class="icon-btn">⚙️</div>
+    <div id="help-toggle-btn" class="icon-btn">❓</div>
+    <div id="control-panel" class="hidden">
+        <h2>Simulation Settings</h2>
+        <div id="control-panel-content">
+            <!-- Controls injected by JS -->
+        </div>
+        <button id="restart-btn">Reset World</button>
+    </div>
+
+    <!-- Load libraries first -->
+    <script type="text/javascript" src="./includes/matter.min.js" defer></script>
+    <script src="./includes/Highcharts/code/highcharts.js" defer></script>
+    <script type="text/javascript" src="./includes/brain.js" defer></script>
+
+    <!-- Then load your application scripts -->
+    <script type="text/javascript" src="./includes/spatial-grid.js" defer></script>
+    <script type="text/javascript" src="./includes/lake.js" defer></script>
+    <script type="text/javascript" src="./includes/food.js" defer></script>
+    <script type="text/javascript" src="./includes/food-manager.js" defer></script>
+    <script type="text/javascript" src="./includes/creature.js" defer></script>
+    <script type="text/javascript" src="./includes/simulation.js" defer></script>
+    <script type="text/javascript" src="./includes/ui-controls.js" defer></script>
+    <script type="text/javascript" src="./main.js" defer></script>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button" id="close-help-modal">&times;</span>
+            <h2>🧬 Creature Simulator Help</h2>
+            <p>Welcome to the AI Creature Simulation! Watch as neural networks learn to survive.</p>
+
+            <table class="shortcuts-table">
+                <tr>
+                    <td><span class="key">P</span></td>
+                    <td class="description">Pause/Resume simulation</td>
+                </tr>
+                <tr>
+                    <td><span class="key">Shift + P</span></td>
+                    <td class="description">Previous creature (cycle backward)</td>
+                </tr>
+                <tr>
+                    <td><span class="key">N</span></td>
+                    <td class="description">Next creature (cycle forward)</td>
+                </tr>
+                <tr>
+                    <td><span class="key">E</span></td>
+                    <td class="description">Toggle creature vision rays</td>
+                </tr>
+                <tr>
+                    <td><span class="key">I</span></td>
+                    <td class="description">Toggle creature info boxes</td>
+                </tr>
+                <tr>
+                    <td><span class="key">H</span></td>
+                    <td class="description">Toggle UI panels (stats, charts, network)</td>
+                </tr>
+                <tr>
+                    <td><span class="key">S</span></td>
+                    <td class="description">Save best creature brain</td>
+                </tr>
+                <tr>
+                    <td><span class="key">L</span></td>
+                    <td class="description">Load saved creature brain</td>
+                </tr>
+                <tr>
+                    <td><span class="key">?</span></td>
+                    <td class="description">Show this help menu</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Help Modal Event Handlers
+        document.addEventListener('DOMContentLoaded', () => {
+            const helpModal = document.getElementById('help-modal');
+            const closeButton = document.getElementById('close-help-modal');
+            const helpToggle = document.getElementById('help-toggle-btn');
+
+            if (helpToggle) {
+                helpToggle.addEventListener('click', () => {
+                    if (helpModal) {
+                        helpModal.classList.remove('hidden');
+                    }
+                });
+            }
+
+            // Show modal when '?' is pressed
+            document.addEventListener('keydown', (event) => {
+                if (event.key === '?') {
+                    if (helpModal) {
+                        helpModal.classList.remove('hidden');
+                    }
+                }
+            });
+
+            // Close modal when clicking the × button
+            if (closeButton) {
+                closeButton.addEventListener('click', () => {
+                    if (helpModal) {
+                        helpModal.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Close modal when clicking outside the modal content
+            if (helpModal) {
+                helpModal.addEventListener('click', (event) => {
+                    if (event.target === helpModal) {
+                        helpModal.classList.add('hidden');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
