@@ -174,3 +174,32 @@ input[type=range]::-webkit-slider-thumb {
     color: #888;
     margin-top: 2px;
 }
+
+/* Coffee Icon Positioning */
+#coffee-toggle-btn {
+    right: 110px;
+    /* Positioned to the left of the help icon */
+}
+
+/* Modal styles are already largely covered by .modal in creature.css,
+   but we want a special button style for the link */
+.coffee-link-btn {
+    display: inline-block;
+    background-color: #FFDD00;
+    color: #444;
+    font-weight: bold;
+    text-decoration: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 18px;
+    border: 2px solid #eebb00;
+    transition: all 0.2s ease;
+    margin-top: 10px;
+}
+
+.coffee-link-btn:hover {
+    background-color: #ffeb3b;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    color: #000;
+}
