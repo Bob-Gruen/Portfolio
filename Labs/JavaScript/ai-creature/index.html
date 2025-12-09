@@ -17,6 +17,7 @@
 
     <div id="control-panel-toggle" class="icon-btn">⚙️</div>
     <div id="help-toggle-btn" class="icon-btn">❓</div>
+    <div id="coffee-toggle-btn" class="icon-btn">☕</div>
     <div id="control-panel" class="hidden">
         <h2>Simulation Settings</h2>
         <div id="control-panel-content">
@@ -88,6 +89,18 @@
         </div>
     </div>
 
+    <!-- Buy Me a Coffee Modal -->
+    <div id="coffee-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button" id="close-coffee-modal">&times;</span>
+            <h2>Enjoying the Sim?</h2>
+            <p>If you like these little creatures, consider buying me a coffee!</p>
+            <a href="https://buymeacoffee.com/bobgruen" target="_blank" class="coffee-link-btn">
+                ☕ Buy Me a Coffee
+            </a>
+        </div>
+    </div>
+
     <script>
         // Help Modal Event Handlers
         document.addEventListener('DOMContentLoaded', () => {
@@ -126,6 +139,35 @@
                 helpModal.addEventListener('click', (event) => {
                     if (event.target === helpModal) {
                         helpModal.classList.add('hidden');
+                    }
+                });
+            }
+
+            // --- Buy Me a Coffee Modal Event Handlers ---
+            const coffeeModal = document.getElementById('coffee-modal');
+            const coffeeCloseButton = document.getElementById('close-coffee-modal');
+            const coffeeToggle = document.getElementById('coffee-toggle-btn');
+
+            if (coffeeToggle) {
+                coffeeToggle.addEventListener('click', () => {
+                    if (coffeeModal) {
+                        coffeeModal.classList.remove('hidden');
+                    }
+                });
+            }
+
+            if (coffeeCloseButton) {
+                coffeeCloseButton.addEventListener('click', () => {
+                    if (coffeeModal) {
+                        coffeeModal.classList.add('hidden');
+                    }
+                });
+            }
+
+            if (coffeeModal) {
+                coffeeModal.addEventListener('click', (event) => {
+                    if (event.target === coffeeModal) {
+                        coffeeModal.classList.add('hidden');
                     }
                 });
             }
