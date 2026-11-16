@@ -1,0 +1,25 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="poisonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#E040FB" stop-opacity="0.6"/>
+      <stop offset="65%" stop-color="#7B1FA2" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#4A148C" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="capGrad" cx="40%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#F06292"/>
+      <stop offset="50%" stop-color="#9C27B0"/>
+      <stop offset="100%" stop-color="#311B92"/>
+    </radialGradient>
+  </defs>
+  <!-- Dark violet aura -->
+  <circle cx="32" cy="34" r="28" fill="url(#poisonGlow)"/>
+  <!-- Twisted stem -->
+  <path d="M26,34 Q24,50 22,54 L42,54 Q39,48 38,34 Z" fill="#D1C4E9" stroke="#4A148C" stroke-width="1.5"/>
+  <!-- Toadstool Cap -->
+  <path d="M10,36 Q32,6 54,36 Q32,42 10,36 Z" fill="url(#capGrad)" stroke="#311B92" stroke-width="1.5"/>
+  <!-- Glowing warning spots -->
+  <circle cx="23" cy="26" r="3.5" fill="#FF80AB" opacity="0.95"/>
+  <circle cx="34" cy="20" r="4.2" fill="#EA80FC" opacity="0.95"/>
+  <circle cx="43" cy="28" r="3" fill="#FF80AB" opacity="0.9"/>
+  <circle cx="29" cy="31" r="2.2" fill="#FCE4EC" opacity="0.85"/>
+</svg>

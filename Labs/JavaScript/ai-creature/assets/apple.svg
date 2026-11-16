@@ -1,0 +1,29 @@
+<svg
+    width="12"
+    height="12"
+    viewBox="0 0 12 12"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+>
+    <!-- Apple body -->
+    <circle cx="6" cy="7" r="4.5" fill="#e74c3c" />
+    
+    <!-- Stem -->
+    <path d="M6 2.5 Q6 1 7 0.5" stroke="#795548" stroke-width="1" fill="none" />
+    
+    <!-- Leaf -->
+    <path d="M6 2.5 Q4 1 4 2.5 Q6 4 6 2.5" fill="#4caf50" />
+    
+    <!-- Shininess -->
+    <ellipse cx="4.5" cy="5" rx="1" ry="1.5" fill="white" opacity="0.4" transform="rotate(-20 4.5 5)" />
+    
+     <!-- Ground shadow -->
+    <ellipse
+        cx="6"
+        cy="11"
+        rx="3"
+        ry="0.8"
+        fill="#000000"
+        opacity="0.1"
+    />
+</svg>

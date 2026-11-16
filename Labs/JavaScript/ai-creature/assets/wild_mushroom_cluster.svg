@@ -1,0 +1,15 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cluster of 3 mushrooms -->
+  <g transform="translate(10, 20) scale(0.8)">
+      <path d="M40,50 Q40,90 30,95 L70,95 Q60,90 60,50 Z" fill="#E8DCCA" stroke="#5D4037" stroke-width="2"/>
+      <path d="M10,50 Q50,-10 90,50 Z" fill="#8D6E63" stroke="#5D4037" stroke-width="2"/>
+  </g>
+  <g transform="translate(45, 10) scale(0.6)">
+      <path d="M40,50 Q40,90 30,95 L70,95 Q60,90 60,50 Z" fill="#E8DCCA" stroke="#5D4037" stroke-width="2"/>
+      <path d="M10,50 Q50,-10 90,50 Z" fill="#6D4C41" stroke="#3E2723" stroke-width="2"/>
+  </g>
+  <g transform="translate(30, 40) scale(0.5)">
+      <path d="M40,50 Q40,90 30,95 L70,95 Q60,90 60,50 Z" fill="#E8DCCA" stroke="#5D4037" stroke-width="2"/>
+      <path d="M10,50 Q50,-10 90,50 Z" fill="#A1887F" stroke="#5D4037" stroke-width="2"/>
+  </g>
+</svg>

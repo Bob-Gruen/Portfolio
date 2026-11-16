@@ -1,0 +1,31 @@
+<svg
+    width="16"
+    height="12"
+    viewBox="0 0 16 12"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+>
+    <!-- Banana 1 (Green/Brown) -->
+    <path d="M3 10 Q8 12 11 2" stroke="#556b2f" stroke-width="3" fill="none" stroke-linecap="round" />
+    <!-- Banana 2 -->
+    <path d="M5 10 Q9 12 12 3" stroke="#6b8e23" stroke-width="3" fill="none" stroke-linecap="round" />
+     <!-- Banana 3 -->
+    <path d="M7 10 Q10 11 11.5 4" stroke="#4a3b2a" stroke-width="3" fill="none" stroke-linecap="round" />
+    
+    <!-- Stems connection -->
+    <path d="M11 2 L12 3 L11.5 4" fill="#3e2723" />
+    
+    <!-- Flies (dots) -->
+    <circle cx="10" cy="5" r="0.5" fill="black" />
+    <circle cx="13" cy="3" r="0.5" fill="black" />
+
+     <!-- Ground shadow -->
+    <ellipse
+        cx="7"
+        cy="11"
+        rx="5"
+        ry="0.8"
+        fill="#000000"
+        opacity="0.1"
+    />
+</svg>

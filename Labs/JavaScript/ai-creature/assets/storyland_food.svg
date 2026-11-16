@@ -1,0 +1,24 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="berryGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFE57F" stop-opacity="0.75"/>
+      <stop offset="65%" stop-color="#FFB300" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#FFB300" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="berryBody" cx="35%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#FFF59D"/>
+      <stop offset="45%" stop-color="#FFCA28"/>
+      <stop offset="100%" stop-color="#E65100"/>
+    </radialGradient>
+  </defs>
+  <!-- Soft golden aura -->
+  <circle cx="32" cy="34" r="28" fill="url(#berryGlow)"/>
+  <!-- Little storybook leaves -->
+  <path d="M32,18 Q20,8 14,18 Q22,24 32,20 Z" fill="#66BB6A" stroke="#2E7D32" stroke-width="1.5"/>
+  <path d="M32,18 Q44,8 50,18 Q42,24 32,20 Z" fill="#81C784" stroke="#2E7D32" stroke-width="1.5"/>
+  <!-- Golden Sunberry -->
+  <circle cx="32" cy="36" r="16" fill="url(#berryBody)" stroke="#BF360C" stroke-width="1.5"/>
+  <!-- Highlight & sparkle -->
+  <ellipse cx="26" cy="29" rx="5" ry="3" transform="rotate(-25 26 29)" fill="#FFFFFF" opacity="0.75"/>
+  <circle cx="39" cy="41" r="1.8" fill="#FFF9C4" opacity="0.8"/>
+</svg>

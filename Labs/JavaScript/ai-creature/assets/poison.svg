@@ -1,0 +1,40 @@
+<svg
+    width="12"
+    height="12"
+    viewBox="0 0 12 12"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+>
+    <!-- Cap: Wide and domed -->
+    <path
+        d="M0.5 7
+           Q6 0.5 11.5 7
+           Z"
+        fill="#FF00FF"
+    />
+
+    <!-- Cap dots -->
+    <circle cx="3.5" cy="4.5" r="0.8" fill="#ffffff" />
+    <circle cx="8.5" cy="5.5" r="0.6" fill="#ffffff" />
+    <circle cx="6" cy="3" r="0.5" fill="#ffffff" />
+
+    <!-- Stem -->
+    <rect
+        x="5"
+        y="7"
+        width="2"
+        height="3"
+        rx="0.5"
+        fill="#f5e6c8"
+    />
+
+    <!-- Ground shadow -->
+    <ellipse
+        cx="6"
+        cy="10.5"
+        rx="4"
+        ry="0.8"
+        fill="#000000"
+        opacity="0.1"
+    />
+</svg>

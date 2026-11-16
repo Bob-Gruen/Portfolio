@@ -1,0 +1,27 @@
+<svg
+    width="16"
+    height="12"
+    viewBox="0 0 16 12"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+>
+    <!-- Banana 1 -->
+    <path d="M3 10 Q8 12 11 2" stroke="#f1c40f" stroke-width="3" fill="none" stroke-linecap="round" />
+    <!-- Banana 2 -->
+    <path d="M5 10 Q9 12 12 3" stroke="#f1c40f" stroke-width="3" fill="none" stroke-linecap="round" />
+     <!-- Banana 3 (Back) -->
+    <path d="M7 10 Q10 11 11.5 4" stroke="#f39c12" stroke-width="3" fill="none" stroke-linecap="round" />
+    
+    <!-- Stems connection -->
+    <path d="M11 2 L12 3 L11.5 4" fill="#5d4037" />
+
+     <!-- Ground shadow -->
+    <ellipse
+        cx="7"
+        cy="11"
+        rx="5"
+        ry="0.8"
+        fill="#000000"
+        opacity="0.1"
+    />
+</svg>
