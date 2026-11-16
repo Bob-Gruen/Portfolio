@@ -8,6 +8,7 @@
 </head>
 
 <body>
+    <canvas id="bg-canvas"></canvas>
     <canvas id="canvas1"></canvas>
     <div id='bg_console' class='info-panels'></div>
     <div id='chart-container' class='info-panels'></div>
@@ -27,19 +28,20 @@
     </div>
 
     <!-- Load libraries first -->
-    <script type="text/javascript" src="./includes/matter.min.js" defer></script>
-    <script src="./includes/Highcharts/code/highcharts.js" defer></script>
-    <script type="text/javascript" src="./includes/brain.js" defer></script>
+    <script type="text/javascript" src="./includes/matter.min.js"></script>
+    <script src="./includes/Highcharts/code/highcharts.js"></script>
+    <script type="text/javascript" src="./includes/gpu.js"></script>
+    <script type="text/javascript" src="./includes/brain.js"></script>
 
-    <!-- Then load your application scripts -->
-    <script type="text/javascript" src="./includes/spatial-grid.js" defer></script>
-    <script type="text/javascript" src="./includes/lake.js" defer></script>
-    <script type="text/javascript" src="./includes/food.js" defer></script>
-    <script type="text/javascript" src="./includes/food-manager.js" defer></script>
-    <script type="text/javascript" src="./includes/creature.js" defer></script>
-    <script type="text/javascript" src="./includes/simulation.js" defer></script>
-    <script type="text/javascript" src="./includes/ui-controls.js" defer></script>
-    <script type="text/javascript" src="./main.js" defer></script>
+    <!-- Then load my simulation scripts -->
+    <script type="text/javascript" src="./includes/spatial-grid.js"></script>
+    <script type="text/javascript" src="./includes/lake.js"></script>
+    <script type="text/javascript" src="./includes/food.js"></script>
+    <script type="text/javascript" src="./includes/food-manager.js"></script>
+    <script type="text/javascript" src="./includes/creature.js"></script>
+    <script type="text/javascript" src="./includes/simulation.js"></script>
+    <script type="text/javascript" src="./includes/ui-controls.js"></script>
+    <script type="text/javascript" src="./main.js"></script>
 
     <!-- Help Modal -->
     <div id="help-modal" class="modal hidden">
@@ -94,7 +96,13 @@
         <div class="modal-content">
             <span class="close-button" id="close-coffee-modal">&times;</span>
             <h2>Enjoying the Sim?</h2>
-            <p>If you like these little creatures, consider buying me a coffee!</p>
+            <p>Feel free to look through the source code, it will help you learn all about genetic simulations.
+                You are even free to use this code, in whole or in part, for your own projects. My only requirment
+                is that you credit me as the original author and notify me (by email) of any use of the code - I'd love
+                to hear
+                that someone else finds this useful.</p>
+            <p>If you like these little creatures, and free source code, I hope you will consider buying me a coffee!
+            </p>
             <a href="https://buymeacoffee.com/bobgruen" target="_blank" class="coffee-link-btn">
                 ☕ Buy Me a Coffee
             </a>
