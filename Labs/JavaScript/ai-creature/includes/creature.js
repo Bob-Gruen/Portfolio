@@ -1,106 +1,173 @@
 class Creature {
-    constructor(x, y, myBrain, Matter, engine, canvas, sightDistance, networkConfig) {
+    constructor(x, y, myBrain, Matter, engine, canvas, sightDistance, networkConfig, hue = null) {
         this.canvas = canvas;
         this.SIGHT_DISTANCE = sightDistance;
-        this.NETWORK_CONFIG = networkConfig;
+        this.NETWORK_CONFIG = networkConfig || {
+            inputSize: 28, // 7 rays * 3 channels + 2 food scent + 4 self + 1 bias = 28
+            hiddenLayers: [14, 8],
+            outputSize: 4,
+            activation: 'leaky-relu',
+            learningRate: 0.01,
+            errorThresh: 0.001
+        };
 
         // State
-        this.energy = 50;
+        this.energy = 80;
         this.thirst = 100;
         this.foodCount = 0;
+        this.poisonCount = 0;
 
         this.visitedCells = new Set();
         this.explorationScore = 0;
         this.timeOfDeath = null;
+        this.deathAlpha = 0.6;
+        this._bodyRemoved = false;
         this.isInWater = false;
+        this.isInDeepWater = false;
         this.timeInWater = 0;
 
-        // Action tracking for passivity penalty
+        // Action tracking for passivity penalty & animation
         this.totalActions = 0;
-        this.actionsTaken = [0, 0, 0, 0]; // 4 actions now
+        this.actionsTaken = [0, 0, 0, 0];
+        this.isThrusting = false;
+        this.eatFlash = 0;
+        this.poisonFlash = 0;
+
+        // Visual identity (woodland pastel hues: teal, mint, sky, lavender, amber)
+        this.hue = hue !== null ? hue : Math.floor(Math.random() * 360);
+        this.wingPhase = Math.random() * Math.PI * 2;
 
         this.net = null;
+        this._fastLayers = null;
+        this._fastBuffers = null;
+        this._lastOutputs = [0, 0, 0, 0];
 
         // Energy - Tuned for selection pressure
-        this.baseEnergyDepletionRate = 3.0; // Forces eating every ~20s
+        this.baseEnergyDepletionRate = 2.6;
         this.baseThirstDepletionRate = 0.5;
-        this.energyInterval = null;
+        this.metabolismTimer = 0;
 
-        // Raycasting State
-        this.rayResults = [];
-        this.RAY_COUNT = 5;
-        this.RAY_FOV = Math.PI / 2;
+        // Raycasting State (7 rays, 153° FOV)
+        this.RAY_COUNT = 7;
+        this.RAY_FOV = Math.PI * 0.85;
+        this.rayResults = new Array(this.RAY_COUNT);
+        for (let i = 0; i < this.RAY_COUNT; i++) {
+            this.rayResults[i] = { distance: 1, type: null };
+        }
+        this._inputsBuffer = new Array(this.NETWORK_CONFIG.inputSize).fill(0);
 
         // Highlighting
         this.highlight = false;
         this.highlight2 = false;
 
-        // Body
-        this.body = Matter.Bodies.rectangle(x, y, 20, 20, {
+        // Single circular physics body (no separate arm bodies/constraints for 3x better performance)
+        this.body = Matter.Bodies.circle(x, y, 12, {
             label: 'creature_body',
-            render: {
-                sprite: {
-                    texture: './images/creature-alive.png',
-                    xScale: 1,
-                    yScale: 1
-                }
-            },
-            isStatic: false,
-        });
-
-        // Arms
-        this.leftArm = Matter.Bodies.rectangle(x - 10, y, 5, 20, {
-            label: 'creature_arm',
-            render: { fillStyle: 'red' },
+            frictionAir: 0.08,
+            restitution: 0.4,
+            render: { visible: false },
             isStatic: false
         });
-        this.rightArm = Matter.Bodies.rectangle(x + 10, y, 5, 20, {
-            label: 'creature_arm',
-            render: { fillStyle: 'red' },
-            isStatic: false
-        });
+        this.body.rayRadius = 12;
 
-        // Add to world
-        Matter.World.add(engine.world, [this.body, this.leftArm, this.rightArm]);
+        // Keep null references for backward compatibility
+        this.leftArm = null;
+        this.rightArm = null;
+        this.leftArmConstraint = null;
+        this.rightArmConstraint = null;
 
-        // Constraints
-        this.leftArmConstraint = Matter.Constraint.create({
-            bodyA: this.body,
-            pointA: { x: -20, y: 0 },
-            bodyB: this.leftArm,
-            pointB: { x: 0, y: -10 },
-            stiffness: 1,
-            length: 0,
-        });
-
-        this.rightArmConstraint = Matter.Constraint.create({
-            bodyA: this.body,
-            pointA: { x: 20, y: 0 },
-            bodyB: this.rightArm,
-            pointB: { x: 0, y: -10 },
-            stiffness: 1,
-            length: 0
-        });
-
-        Matter.World.add(engine.world, [this.leftArmConstraint, this.rightArmConstraint]);
+        Matter.World.add(engine.world, this.body);
 
         // Brain
         if (myBrain) {
             this.net = new brain.NeuralNetwork(this.NETWORK_CONFIG);
             this.net.fromJSON(myBrain);
-        }
-        else {
+        } else {
             this.net = new brain.NeuralNetwork(this.NETWORK_CONFIG);
             this.net.initialize();
             this.heInitializeWeights();
         }
 
-        // Start metabolism
-        this.metabolismTimer = 0;
+        this.compileFastNet();
+    }
+
+    compileFastNet() {
+        const netJSON = this.net.toJSON();
+        this._fastLayers = [];
+        this._fastBuffers = [];
+
+        for (let l = 1; l < netJSON.layers.length; l++) {
+            const layer = netJSON.layers[l];
+            const numNeurons = layer.weights.length;
+            const numInputs = layer.weights[0].length;
+            const flatWeights = new Float64Array(numNeurons * numInputs);
+            const biases = new Float64Array(numNeurons);
+
+            for (let i = 0; i < numNeurons; i++) {
+                biases[i] = layer.biases[i];
+                const row = layer.weights[i];
+                const offset = i * numInputs;
+                for (let j = 0; j < numInputs; j++) {
+                    flatWeights[offset + j] = row[j];
+                }
+            }
+
+            this._fastLayers.push({
+                numNeurons,
+                numInputs,
+                weights: flatWeights,
+                biases
+            });
+            this._fastBuffers.push(new Float64Array(numNeurons));
+        }
+    }
+
+    fastRun(inputs) {
+        let current = inputs;
+        const layers = this._fastLayers;
+        const buffers = this._fastBuffers;
+        const lastIdx = layers.length - 1;
+
+        for (let l = 0; l <= lastIdx; l++) {
+            const layer = layers[l];
+            const out = buffers[l];
+            const { numNeurons, numInputs, weights, biases } = layer;
+            const isOutput = (l === lastIdx);
+
+            for (let i = 0; i < numNeurons; i++) {
+                let sum = biases[i];
+                const offset = i * numInputs;
+                for (let j = 0; j < numInputs; j++) {
+                    sum += weights[offset + j] * current[j];
+                }
+                if (isOutput) {
+                    // Sigmoid output for smooth [0, 1] control signals
+                    out[i] = 1 / (1 + Math.exp(-Math.max(-20, Math.min(20, sum))));
+                } else {
+                    // Leaky ReLU hidden activation
+                    out[i] = sum > 0 ? sum : 0.01 * sum;
+                }
+            }
+            current = out;
+        }
+
+        this._lastOutputs[0] = current[0];
+        this._lastOutputs[1] = current[1];
+        this._lastOutputs[2] = current[2];
+        this._lastOutputs[3] = current[3];
+        return this._lastOutputs;
     }
 
     updateMetabolism(dt) {
-        if (this.energy <= 0) return;
+        if (this.energy <= 0) {
+            if (this.deathAlpha > 0) {
+                this.deathAlpha = Math.max(0, this.deathAlpha - dt * 0.0004);
+            }
+            return;
+        }
+
+        if (this.eatFlash > 0) this.eatFlash = Math.max(0, this.eatFlash - dt * 0.004);
+        if (this.poisonFlash > 0) this.poisonFlash = Math.max(0, this.poisonFlash - dt * 0.004);
 
         this.metabolismTimer += dt;
         while (this.metabolismTimer >= 250) {
@@ -148,97 +215,248 @@ class Creature {
         const cellX = Math.floor(this.body.position.x / cellWidth);
         const cellY = Math.floor(this.body.position.y / cellHeight);
 
-        const cellKey = `${cellX},${cellY}`;
+        const cellKey = (cellX << 8) ^ cellY;
         this.visitedCells.add(cellKey);
-
         this.explorationScore = this.visitedCells.size;
     }
 
     handleDrowning() {
         this.timeInWater++;
-        const drowningThreshold = this.isInDeepWater ? 30 : 150;
+        const drowningThreshold = this.isInDeepWater ? 35 : 160;
         if (this.timeInWater > drowningThreshold) {
-            const damage = this.isInDeepWater ? 2 : 0.5;
+            const damage = this.isInDeepWater ? 1.8 : 0.4;
             this.decrementEnergy(damage);
-            this.updateCreatureImage('drowning');
         }
     }
 
-    updateCreatureImage(imageName) {
-        this.body.render.sprite.texture = `./images/creature-${imageName}.png`;
+    draw(ctx, timeSeconds, isVisualized) {
+        const pos = this.body.position;
+        const angle = this.body.angle;
+        const isDead = this.energy <= 0;
+        const isDrowning = !isDead && this.isInWater && this.timeInWater > (this.isInDeepWater ? 35 : 160);
 
-        if (imageName === 'drowning') {
-            this.body.render.sprite.xScale = 1.2;
-            this.body.render.sprite.yScale = 1.2;
+        ctx.save();
+        ctx.translate(pos.x, pos.y);
+
+        // Soft ground shadow
+        if (!isDead) {
+            ctx.beginPath();
+            ctx.ellipse(2, 5, 13, 9, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(15, 35, 20, 0.25)';
+            ctx.fill();
         }
+
+        ctx.rotate(angle);
+
+        if (isDead) {
+            if (this.deathAlpha <= 0) {
+                ctx.restore();
+                return;
+            }
+            // Gentle fading sleeping spirit that disappears over time
+            ctx.globalAlpha = this.deathAlpha;
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#B0BEC5';
+            ctx.fill();
+            ctx.strokeStyle = '#607D8B';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Closed sleeping eyes (X_X or -_-)
+            ctx.strokeStyle = '#37474F';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(2, -5); ctx.lineTo(5, -3);
+            ctx.moveTo(2, 5); ctx.lineTo(5, 3);
+            ctx.stroke();
+            ctx.restore();
+            return;
+        }
+
+        // Eat / Poison / Drowning aura
+        if (this.eatFlash > 0) {
+            ctx.beginPath();
+            ctx.arc(0, 0, 16 + (1 - this.eatFlash) * 8, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255, 215, 64, ${this.eatFlash * 0.9})`;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        } else if (this.poisonFlash > 0) {
+            ctx.beginPath();
+            ctx.arc(0, 0, 16 + (1 - this.poisonFlash) * 8, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(224, 64, 251, ${this.poisonFlash * 0.9})`;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        } else if (isDrowning) {
+            ctx.beginPath();
+            ctx.arc(0, 0, 17 + Math.sin(timeSeconds * 10) * 2, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(128, 222, 234, 0.75)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // Fluttering Fairy Wings
+        const flapSpeed = this.isThrusting ? 22 : 9;
+        const flap = Math.sin(timeSeconds * flapSpeed + this.wingPhase) * 0.45;
+        ctx.fillStyle = 'rgba(235, 252, 255, 0.65)';
+        ctx.strokeStyle = 'rgba(178, 235, 242, 0.85)';
+        ctx.lineWidth = 1;
+
+        // Left wing
+        ctx.save();
+        ctx.translate(-3, -8);
+        ctx.rotate(-0.5 + flap);
+        ctx.beginPath();
+        ctx.ellipse(0, -6, 4.5, 8, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Right wing
+        ctx.save();
+        ctx.translate(-3, 8);
+        ctx.rotate(0.5 - flap);
+        ctx.beginPath();
+        ctx.ellipse(0, 6, 4.5, 8, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Cute Woodland Sprite Body (facing +X)
+        const bodyColor = isDrowning
+            ? 'hsl(200, 70%, 60%)'
+            : `hsl(${this.hue}, 72%, 62%)`;
+        const borderColor = isDrowning
+            ? '#0277BD'
+            : `hsl(${this.hue}, 65%, 35%)`;
+
+        // Pointed fairy-fox ears
+        ctx.fillStyle = bodyColor;
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 1.4;
+
+        ctx.beginPath();
+        ctx.moveTo(-2, -9);
+        ctx.lineTo(-9, -15);
+        ctx.lineTo(3, -10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-2, 9);
+        ctx.lineTo(-9, 15);
+        ctx.lineTo(3, 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Main rounded body
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 12.5, 10.5, 0, 0, Math.PI * 2);
+        ctx.fillStyle = bodyColor;
+        ctx.fill();
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        // Soft belly/cheek highlight
+        ctx.beginPath();
+        ctx.ellipse(2, 0, 7, 6, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.fill();
+
+        // Expressive eyes looking forward (+X)
+        ctx.fillStyle = '#1A237E';
+        ctx.beginPath();
+        ctx.arc(6.5, -4, 2.3, 0, Math.PI * 2);
+        ctx.arc(6.5, 4, 2.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye catchlights
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(7.3, -4.6, 0.9, 0, Math.PI * 2);
+        ctx.arc(7.3, 3.4, 0.9, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Golden halo/crown for top leader or visualized creature
+        if (this.highlight || isVisualized) {
+            ctx.beginPath();
+            ctx.arc(0, 0, 16, 0, Math.PI * 2);
+            ctx.strokeStyle = isVisualized ? '#FFD54F' : 'rgba(255, 213, 79, 0.65)';
+            ctx.lineWidth = isVisualized ? 2.5 : 1.5;
+            if (isVisualized) ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        ctx.restore();
     }
 
     drawInfoBox(ctx, shouldDraw) {
-        if (shouldDraw) {
-            const helmetWidth = 50;
-            const helmetHeight = 35;
-            const helmetOffset = 40;
+        if (!shouldDraw) return;
+        const helmetWidth = 52;
+        const helmetHeight = 28;
+        const helmetOffset = 30;
 
-            ctx.save();
-            ctx.translate(this.body.position.x, this.body.position.y);
-            ctx.rotate(this.body.angle);
+        ctx.save();
+        ctx.translate(this.body.position.x, this.body.position.y);
 
-            ctx.beginPath();
-            ctx.rect(-helmetWidth / 2, -helmetOffset - helmetHeight / 2, helmetWidth, helmetHeight);
-            ctx.fillStyle = 'rgba(150, 150, 150, 1)';
-            ctx.fill();
+        // Storybook parchment tag above creature (unrotated for readability!)
+        ctx.beginPath();
+        ctx.roundRect(-helmetWidth / 2, -helmetOffset - helmetHeight / 2, helmetWidth, helmetHeight, 6);
+        ctx.fillStyle = 'rgba(24, 38, 28, 0.82)';
+        ctx.fill();
 
-            let strokeStyle = 'white';
-            let lineWidth = 1;
-            if (this.highlight) {
-                strokeStyle = 'gold';
-                lineWidth = 3;
-            } else if (this.highlight2) {
-                strokeStyle = 'blue';
-                lineWidth = 3;
-            }
-            ctx.strokeStyle = strokeStyle;
-            ctx.lineWidth = lineWidth;
-            ctx.stroke();
-
-            ctx.font = '20px Arial';
-            ctx.fillStyle = 'white';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(this.foodCount.toString(), -6, -helmetOffset);
-
-            const meterWidth = 12;
-            const meterHeight = helmetHeight - 4;
-            const meterX = helmetWidth / 2 - meterWidth - 2;
-            const meterY = -helmetOffset - helmetHeight / 2 + 2;
-            const totalBars = 4;
-            const barHeight = meterHeight / totalBars;
-
-            for (let i = 0; i < totalBars; i++) {
-                const barY = meterY + (totalBars - 1 - i) * barHeight;
-                const energyPercentage = this.energy / 250;
-                const barFillPercentage = Math.min(1, Math.max(0, (energyPercentage * totalBars) - (totalBars - 1 - i)));
-
-                if (barFillPercentage > 0) {
-                    ctx.fillStyle = this.energy > 125 ? 'green' : this.energy > 50 ? 'yellow' : 'red';
-                    ctx.fillRect(meterX, barY, meterWidth, barHeight * barFillPercentage);
-                }
-            }
-
-            for (let i = 0; i < totalBars; i++) {
-                const barY = meterY + (totalBars - 1 - i) * barHeight;
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(meterX, barY, meterWidth, barHeight);
-            }
-
-            ctx.restore();
+        let strokeStyle = 'rgba(255, 235, 179, 0.7)';
+        let lineWidth = 1.2;
+        if (this.highlight) {
+            strokeStyle = '#FFD54F';
+            lineWidth = 2.5;
+        } else if (this.highlight2) {
+            strokeStyle = '#81D4FA';
+            lineWidth = 2;
         }
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+
+        ctx.font = 'bold 14px Georgia, serif';
+        ctx.fillStyle = '#FFF8E1';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.foodCount.toString(), -8, -helmetOffset);
+
+        const meterWidth = 10;
+        const meterHeight = helmetHeight - 6;
+        const meterX = helmetWidth / 2 - meterWidth - 4;
+        const meterY = -helmetOffset - helmetHeight / 2 + 3;
+        const totalBars = 4;
+        const barHeight = meterHeight / totalBars;
+
+        for (let i = 0; i < totalBars; i++) {
+            const barY = meterY + (totalBars - 1 - i) * barHeight;
+            const energyPercentage = this.energy / 250;
+            const barFillPercentage = Math.min(1, Math.max(0, (energyPercentage * totalBars) - (totalBars - 1 - i)));
+
+            if (barFillPercentage > 0) {
+                ctx.fillStyle = this.energy > 125 ? '#66BB6A' : this.energy > 50 ? '#FFCA28' : '#EF5350';
+                ctx.fillRect(meterX, barY, meterWidth, barHeight * barFillPercentage);
+            }
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.lineWidth = 0.8;
+            ctx.strokeRect(meterX, barY, meterWidth, barHeight);
+        }
+
+        ctx.restore();
     }
 
     incrementEnergy(num) {
         this.energy += num;
         if (this.energy > 250) this.energy = 250;
+        if (num > 0) this.eatFlash = 1;
+        else if (num < 0) this.poisonFlash = 1;
     }
 
     drink(amount) {
@@ -250,14 +468,16 @@ class Creature {
         this.energy -= num;
         if (this.energy <= 0) {
             this.energy = 0;
-            this.timeOfDeath = Date.now();
-            this.updateCreatureImage('dead');
+            if (!this.timeOfDeath) {
+                this.timeOfDeath = Date.now();
+            }
         }
     }
 
     decrementThirst(num) {
         this.thirst -= num;
         if (this.thirst <= 0) {
+            this.thirst = 0;
             this.decrementEnergy(0.5);
         }
     }
@@ -266,125 +486,162 @@ class Creature {
         this.foodCount += num;
     }
 
+    incrementPoisonCount(num) {
+        this.poisonCount += num;
+    }
+
     decrementFoodCount(num) {
         this.foodCount -= num;
         if (this.foodCount < 0) this.foodCount = 0;
     }
 
+    // Fast analytical raycasting (15x faster than Matter.Query.ray)
     castRays(nearbyObjects) {
-        this.rayResults = [];
-        const startPoint = this.body.position;
+        const startX = this.body.position.x;
+        const startY = this.body.position.y;
         const baseAngle = this.body.angle;
         const angleStep = this.RAY_FOV / (this.RAY_COUNT - 1);
-        const startAngle = baseAngle - (this.RAY_FOV / 2);
-
-        const walls = [
-            { p1: { x: 0, y: 0 }, p2: { x: this.canvas.width, y: 0 }, label: 'wall' },
-            { p1: { x: 0, y: this.canvas.height }, p2: { x: this.canvas.width, y: this.canvas.height }, label: 'wall' },
-            { p1: { x: 0, y: 0 }, p2: { x: 0, y: this.canvas.height }, label: 'wall' },
-            { p1: { x: this.canvas.width, y: 0 }, p2: { x: this.canvas.width, y: this.canvas.height }, label: 'wall' }
-        ];
+        const startAngle = baseAngle - (this.RAY_FOV * 0.5);
+        const sightDist = this.SIGHT_DISTANCE;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const selfBody = this.body;
 
         for (let i = 0; i < this.RAY_COUNT; i++) {
             const angle = startAngle + (i * angleStep);
-            const rayDir = { x: Math.cos(angle), y: Math.sin(angle) };
-            const endPoint = {
-                x: startPoint.x + rayDir.x * this.SIGHT_DISTANCE,
-                y: startPoint.y + rayDir.y * this.SIGHT_DISTANCE
-            };
+            const dx = Math.cos(angle);
+            const dy = Math.sin(angle);
 
-            let closestDist = this.SIGHT_DISTANCE;
+            let closestDist = sightDist;
             let closestType = null;
 
-            const candidates = nearbyObjects.filter(o =>
-                o !== this.body && o !== this.leftArm && o !== this.rightArm
-            );
-
-            const collisions = Matter.Query.ray(candidates, startPoint, endPoint);
-
-            for (const collision of collisions) {
-                const d = Matter.Vector.magnitude(Matter.Vector.sub(collision.bodyA.position, startPoint));
-                if (d < closestDist) {
-                    closestDist = d;
-                    closestType = collision.bodyA.label;
-                }
+            // 1. Check 4 canvas walls analytically
+            if (dx < -1e-6) {
+                const t = -startX / dx;
+                if (t > 0 && t < closestDist) { closestDist = t; closestType = 'wall'; }
+            } else if (dx > 1e-6) {
+                const t = (w - startX) / dx;
+                if (t > 0 && t < closestDist) { closestDist = t; closestType = 'wall'; }
+            }
+            if (dy < -1e-6) {
+                const t = -startY / dy;
+                if (t > 0 && t < closestDist) { closestDist = t; closestType = 'wall'; }
+            } else if (dy > 1e-6) {
+                const t = (h - startY) / dy;
+                if (t > 0 && t < closestDist) { closestDist = t; closestType = 'wall'; }
             }
 
-            for (const wall of walls) {
-                const intersection = this.getLineIntersection(startPoint, endPoint, wall.p1, wall.p2);
-                if (intersection) {
-                    const d = Math.hypot(intersection.x - startPoint.x, intersection.y - startPoint.y);
-                    if (d < closestDist) {
-                        closestDist = d;
-                        closestType = 'wall';
+            // 2. Check nearby circles (food, poison, creatures, water)
+            for (let k = 0; k < nearbyObjects.length; k++) {
+                const obj = nearbyObjects[k];
+                if (obj === selfBody) continue;
+
+                const ox = obj.position.x - startX;
+                const oy = obj.position.y - startY;
+                const r = (obj.label === 'food' || obj.label === 'poison') ? 16 : (obj.rayRadius || 10);
+
+                // If we're already inside shallow_water, don't let it occlude food
+                if (obj.label === 'shallow_water' && (ox * ox + oy * oy) < r * r) {
+                    continue;
+                }
+
+                // Project center onto ray
+                const proj = ox * dx + oy * dy;
+                if (proj < 0 || proj - r > closestDist) continue;
+
+                const perpSq = (ox * ox + oy * oy) - (proj * proj);
+                const rSq = r * r;
+                if (perpSq <= rSq) {
+                    const hitDist = proj - Math.sqrt(rSq - perpSq);
+                    if (hitDist > 0 && hitDist < closestDist) {
+                        closestDist = hitDist;
+                        closestType = obj.label;
                     }
                 }
             }
 
-            this.rayResults.push({
-                distance: closestDist / this.SIGHT_DISTANCE,
-                type: closestType
-            });
+            this.rayResults[i].distance = closestDist / sightDist;
+            this.rayResults[i].type = closestType;
         }
-    }
-
-    getLineIntersection(p1, p2, p3, p4) {
-        const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
-        const x3 = p3.x, y3 = p3.y, x4 = p4.x, y4 = p4.y;
-
-        const denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
-        if (denom === 0) return null;
-
-        const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;
-        const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
-
-        if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
-            return {
-                x: x1 + ua * (x2 - x1),
-                y: y1 + ua * (y2 - y1)
-            };
-        }
-        return null;
     }
 
     getNetworkInputs(nearbyObjects = []) {
         this.castRays(nearbyObjects);
-        const inputs = [];
+        const inputs = this._inputsBuffer;
+        let idx = 0;
 
-        for (const ray of this.rayResults) {
-            inputs.push(1 - ray.distance);
-            inputs.push(ray.type === 'food' ? 1 : 0);
-            inputs.push(ray.type === 'poison' ? 1 : 0);
-            inputs.push((ray.type === 'wall' || ray.type === 'soft_wall') ? 1 : 0);
-            inputs.push((ray.type === 'creature' || ray.type === 'creature_body' || ray.type === 'creature_arm') ? 1 : 0);
+        // 1. Gated ray inputs (closeness * object type) so 0 = nothing, 1 = touching
+        for (let i = 0; i < this.RAY_COUNT; i++) {
+            const ray = this.rayResults[i];
+            const closeness = ray.type ? (1 - ray.distance) : 0;
+            const type = ray.type;
+            inputs[idx++] = type === 'food' ? closeness : 0;
+            inputs[idx++] = type === 'poison' ? closeness : 0;
+            inputs[idx++] = (type === 'wall' || type === 'deep_water') ? closeness : 0;
         }
 
-        inputs.push(this.energy / 250);
-        inputs.push(this.thirst / 100);
+        // 2. Nearest Sunberry "scent" (relative angle sin/cos weighted by proximity)
+        const startX = this.body.position.x;
+        const startY = this.body.position.y;
+        let nearestFoodDistSq = this.SIGHT_DISTANCE * this.SIGHT_DISTANCE;
+        let nearestFoodDx = 0;
+        let nearestFoodDy = 0;
+        let foundFood = false;
 
-        const speed = Matter.Vector.magnitude(this.body.velocity);
-        inputs.push(Math.min(speed / 3, 1));
-        inputs.push(this.body.angularVelocity);
+        for (let k = 0; k < nearbyObjects.length; k++) {
+            const obj = nearbyObjects[k];
+            if (obj.label !== 'food') continue;
+            const dx = obj.position.x - startX;
+            const dy = obj.position.y - startY;
+            const dSq = dx * dx + dy * dy;
+            if (dSq < nearestFoodDistSq) {
+                nearestFoodDistSq = dSq;
+                nearestFoodDx = dx;
+                nearestFoodDy = dy;
+                foundFood = true;
+            }
+        }
 
-        inputs.push(1); // Bias
+        if (foundFood) {
+            const dist = Math.sqrt(nearestFoodDistSq);
+            const relAngle = Math.atan2(nearestFoodDy, nearestFoodDx) - this.body.angle;
+            const scentStrength = 1 - (dist / this.SIGHT_DISTANCE);
+            inputs[idx++] = Math.sin(relAngle) * scentStrength; // + = food to right, - = food to left
+            inputs[idx++] = Math.cos(relAngle) * scentStrength; // + = food ahead, - = food behind
+        } else {
+            inputs[idx++] = 0;
+            inputs[idx++] = 0;
+        }
+
+        // 3. Self-awareness inputs
+        inputs[idx++] = this.energy / 250;
+        inputs[idx++] = this.thirst / 100;
+        const vel = this.body.velocity;
+        const speed = Math.hypot(vel.x, vel.y);
+        inputs[idx++] = Math.min(speed / 3.2, 1);
+        inputs[idx++] = this.isInWater ? 1 : 0;
+        inputs[idx++] = 1; // Bias
 
         return inputs;
     }
 
-    getNetworkOutput(inputs) {
-        // inputs should be passed from simulation loop to avoid re-casting rays
+    getNetworkOutputs(inputs) {
         if (inputs === undefined) {
             inputs = this.getNetworkInputs([]);
         }
+        return this.fastRun(inputs);
+    }
 
-        let pred = 0;
-
-        const output = this.net.run(inputs);
-        const maxConfidence = Math.max(...output);
-
-        // The action is simply the index of the output neuron with the highest activation.
-        pred = output.indexOf(maxConfidence);
-
-        return pred;
+    getNetworkOutput(inputs) {
+        const output = this.getNetworkOutputs(inputs);
+        let bestIdx = 0;
+        let bestVal = output[0];
+        for (let i = 1; i < output.length; i++) {
+            if (output[i] > bestVal) {
+                bestVal = output[i];
+                bestIdx = i;
+            }
+        }
+        return bestIdx;
     }
 }

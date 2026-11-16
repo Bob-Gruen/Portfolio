@@ -6,6 +6,19 @@ class Controls {
         // Static config for core settings
         this.staticConfig = [
             {
+                id: 'sim-speed',
+                label: 'Simulation Speed',
+                min: 1,
+                max: 5,
+                step: 1,
+                unit: 'x',
+                get: () => this.sim.SIM_SPEED,
+                set: (val) => {
+                    this.sim.SIM_SPEED = parseInt(val);
+                },
+                restart: false
+            },
+            {
                 id: 'gen-time',
                 label: 'Generation Time',
                 min: 10,
