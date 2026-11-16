@@ -1,33 +1,34 @@
-/* Control Panel Styles */
+/* Control Panel Styles - Fantasy Storyland Theme */
 #control-panel {
     position: absolute;
-    top: 50px;
-    right: 10px;
+    top: 52px;
+    right: 12px;
     width: 300px;
-    background-color: rgba(0, 0, 0, 0.85);
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 15px;
-    color: #eee;
-    font-family: 'Consolas', 'Monaco', monospace;
+    background: linear-gradient(165deg, rgba(20, 38, 24, 0.92), rgba(14, 26, 17, 0.95));
+    border: 2px solid rgba(255, 224, 130, 0.55);
+    border-radius: 12px;
+    padding: 16px;
+    color: #FFF8E1;
+    font-family: 'Georgia', serif;
     z-index: 1000;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    max-height: 80vh;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(5px);
+    max-height: 82vh;
     overflow-y: auto;
     transition: transform 0.3s ease-in-out;
 }
 
 #control-panel.hidden {
-    transform: translateX(320px);
+    transform: translateX(330px);
 }
 
 #control-panel h2 {
     margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.2em;
-    border-bottom: 1px solid #444;
-    padding-bottom: 5px;
-    color: #4CAF50;
+    margin-bottom: 14px;
+    font-size: 1.15em;
+    border-bottom: 1px solid rgba(255, 224, 130, 0.3);
+    padding-bottom: 6px;
+    color: #FFD54F;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -37,34 +38,35 @@
     position: absolute;
     top: 10px;
     z-index: 1001;
-    background-color: rgba(0, 0, 0, 0.8);
-    color: #4CAF50;
-    border: 1px solid #333;
-    padding: 5px 10px;
+    background-color: rgba(20, 38, 24, 0.85);
+    color: #FFD54F;
+    border: 1px solid rgba(255, 224, 130, 0.55);
+    padding: 6px 10px;
     cursor: pointer;
     font-family: inherit;
-    border-radius: 4px;
-    font-size: 1.2em;
+    border-radius: 8px;
+    font-size: 1.1em;
     line-height: 1;
+    transition: background-color 0.2s, transform 0.15s;
 }
 
 .icon-btn:hover {
-    background-color: rgba(20, 20, 20, 0.9);
+    background-color: rgba(34, 64, 40, 0.95);
+    transform: scale(1.05);
 }
 
 #control-panel-toggle {
-    right: 10px;
+    right: 12px;
 }
 
 #help-toggle-btn {
     right: 60px;
-    /* Positioned to the left of the settings icon */
 }
 
 .control-group {
-    margin-bottom: 15px;
+    margin-bottom: 14px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .control-group:last-child {
@@ -76,7 +78,7 @@
     margin-bottom: 5px;
     font-weight: bold;
     font-size: 0.9em;
-    color: #ccc;
+    color: #E8F5E9;
 }
 
 .control-row {
@@ -104,7 +106,7 @@ input[type=range]::-webkit-slider-runnable-track {
     width: 100%;
     height: 6px;
     cursor: pointer;
-    background: #333;
+    background: rgba(255, 255, 255, 0.18);
     border-radius: 3px;
 }
 
@@ -112,23 +114,24 @@ input[type=range]::-webkit-slider-thumb {
     height: 16px;
     width: 16px;
     border-radius: 50%;
-    background: #4CAF50;
+    background: #FFD54F;
+    border: 2px solid #2E7D32;
     cursor: pointer;
     -webkit-appearance: none;
     margin-top: -5px;
-    /* Centers thumb on track */
 }
 
 .value-display {
     width: 50px;
     text-align: right;
     font-size: 0.9em;
-    color: #4CAF50;
+    color: #FFD54F;
+    font-family: 'Consolas', monospace;
 }
 
 .requires-restart {
-    color: #ff9800;
-    font-size: 0.8em;
+    color: #FFB74D;
+    font-size: 0.78em;
     font-style: italic;
     margin-top: 2px;
 }
@@ -136,19 +139,19 @@ input[type=range]::-webkit-slider-thumb {
 #restart-btn {
     width: 100%;
     padding: 10px;
-    background-color: #d32f2f;
-    color: white;
-    border: none;
-    border-radius: 4px;
+    background: linear-gradient(135deg, #c62828, #8e0000);
+    color: #FFF8E1;
+    border: 1px solid rgba(255, 224, 130, 0.45);
+    border-radius: 6px;
     cursor: pointer;
     font-family: inherit;
     font-weight: bold;
     margin-top: 10px;
-    transition: background-color 0.2s;
+    transition: filter 0.2s;
 }
 
 #restart-btn:hover {
-    background-color: #b71c1c;
+    filter: brightness(1.15);
 }
 
 #restart-btn.pending {
@@ -157,32 +160,26 @@ input[type=range]::-webkit-slider-thumb {
 
 @keyframes pulse-red {
     0% {
-        box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7);
+        box-shadow: 0 0 0 0 rgba(255, 213, 79, 0.7);
     }
-
     70% {
-        box-shadow: 0 0 0 10px rgba(211, 47, 47, 0);
+        box-shadow: 0 0 0 10px rgba(255, 213, 79, 0);
     }
-
     100% {
-        box-shadow: 0 0 0 0 rgba(211, 47, 47, 0);
+        box-shadow: 0 0 0 0 rgba(255, 213, 79, 0);
     }
 }
 
 .tooltip {
     font-size: 0.8em;
-    color: #888;
+    color: #A5D6A7;
     margin-top: 2px;
 }
 
-/* Coffee Icon Positioning */
 #coffee-toggle-btn {
-    right: 110px;
-    /* Positioned to the left of the help icon */
+    right: 108px;
 }
 
-/* Modal styles are already largely covered by .modal in creature.css,
-   but we want a special button style for the link */
 .coffee-link-btn {
     display: inline-block;
     background-color: #FFDD00;
